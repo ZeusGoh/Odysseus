@@ -1,0 +1,89 @@
+/* journal.css — Trade journal: the log form, open/closed tables, and performance stats. */
+
+  /* ---- log form ---- */
+  .jform{padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+  .jform label{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--mute)}
+  .jform label em{font-style:normal;font-size:9.5px;opacity:.8}
+  .jform input,.jform select{width:150px;padding:7px 10px;font-size:12px;color:var(--ink);
+        font-family:var(--mono);background:var(--void);border:1px solid var(--edge);border-radius:5px}
+  .jform .jnotes{flex:1 1 260px}
+  .jform .jnotes input{width:100%;font-family:var(--sans)}
+  .jform #j-sym{font-family:var(--sans);width:110px;text-transform:uppercase}
+  .jform #j-wave{font-family:var(--sans);width:130px}
+  #j-dir{display:inline-flex}
+  #j-dir button{padding:7px 13px;font-size:12px;color:var(--mute);border:1px solid var(--edge)}
+  #j-dir button:first-child{border-radius:5px 0 0 5px;border-right:0}
+  #j-dir button:last-child{border-radius:0 5px 5px 0}
+  #j-dir button[aria-pressed=true]{background:var(--raise);color:var(--ink)}
+
+  .jverdict{padding:0 16px 10px;font-size:11.5px;color:var(--mute);line-height:1.6}
+  .jverdict.up{color:var(--up)} .jverdict.down{color:var(--down)} .jverdict.dim{color:var(--mute)}
+  .jformbtns{display:flex;gap:8px;padding:0 16px 14px}
+  .jformbtns .runbtn{padding:7px 16px}
+
+  /* ---- sizing panel ---- */
+  .jcfg{padding:14px 16px;display:flex;flex-wrap:wrap;gap:14px}
+  .jcfg label{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--mute)}
+  .jcfg input{width:150px;padding:7px 10px;font-size:12px;color:var(--ink);
+        font-family:var(--mono);background:var(--void);border:1px solid var(--edge);border-radius:5px}
+
+  /* ---- tables ---- */
+  .jhead,.jrow{display:grid;
+        grid-template-columns:minmax(0,1.1fr) 50px 74px 74px 56px 80px 64px 64px 80px 100px;
+        gap:8px;align-items:center;padding:10px 16px}
+  .jhead{color:var(--mute);font-size:10px;letter-spacing:.04em;
+        background:#0B0E13;border-bottom:1px solid var(--edge)}
+  .jhead span:nth-child(n+3){text-align:right}
+  .jrow{border-bottom:1px solid var(--edge);font-size:11.5px}
+  .jrow:last-child{border-bottom:0}
+  .jrow:hover{background:var(--raise)}
+  .jsym{font-family:var(--mono);font-weight:600;display:flex;flex-direction:column;gap:2px;min-width:0}
+  .jsym em{font-style:normal;color:var(--mute);font-size:10px}
+  .jdir{text-transform:capitalize;font-size:11px}
+  .jdir.up{color:var(--up)} .jdir.down{color:var(--down)}
+  .jnum{font-family:var(--mono);text-align:right}
+  .jnum.up{color:var(--up)} .jnum.down{color:var(--down)}
+  .jgrade{font-family:var(--mono);font-size:10.5px;text-align:right;text-transform:capitalize}
+  .jgrade.up{color:var(--up)} .jgrade.down{color:var(--down)} .jgrade.dim{color:var(--mute)}
+  .jage{font-size:10.5px;color:var(--mute);text-align:right;
+        overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .jactions{display:flex;gap:6px;justify-content:flex-end}
+  .jactions button{font-size:10.5px;color:var(--mute);padding:3px 8px;border-radius:4px;
+        box-shadow:inset 0 0 0 1px var(--edge)}
+  .jactions button:hover{color:var(--ink);background:var(--raise)}
+  .jactions .jdel{color:#39414E;font-size:14px;padding:2px 5px;box-shadow:none;line-height:1}
+  .jactions .jdel:hover{color:var(--down);background:rgba(240,97,109,.10)}
+
+  /* ---- inline close editor (replaces a native prompt()) ---- */
+  .jclosewrap{display:flex;gap:6px;align-items:center}
+  .jexitinput{width:100px;padding:6px 9px;font-size:11.5px;font-family:var(--mono);
+        color:var(--ink);background:var(--void);border:1px solid var(--focus);border-radius:5px}
+  .jconfirm{font-size:10.5px;color:var(--up);padding:5px 10px;border-radius:4px;
+        box-shadow:inset 0 0 0 1px rgba(62,207,142,.35)}
+  .jconfirm:hover{background:rgba(62,207,142,.10)}
+
+  @media (max-width:980px){
+    .jhead{display:none}
+    .jrow{grid-template-columns:minmax(0,1fr) auto auto;gap:6px 10px}
+    .jgrade,.jage,.jactions,.jclosewrap{grid-column:1 / -1}
+    .jactions{justify-content:flex-start}
+  }
+
+  /* ---- grade breakdown ---- */
+  .jgradehead,.jgraderow{display:grid;grid-template-columns:minmax(0,1fr) 80px 90px 80px;
+        gap:10px;align-items:center;padding:9px 16px}
+  .jgradehead{color:var(--mute);font-size:10px;letter-spacing:.04em;
+        background:#0B0E13;border-bottom:1px solid var(--edge)}
+  .jgradehead span:nth-child(n+2){text-align:right}
+  .jgraderow{border-bottom:1px solid var(--edge);font-size:11.5px}
+  .jgraderow:last-child{border-bottom:0}
+
+  /* ---- performance stats ---- */
+  .jstats{display:flex;flex-wrap:wrap;gap:0;padding:4px 0}
+  .jstat{flex:1 1 120px;padding:14px 16px;border-right:1px solid var(--edge);
+        display:flex;flex-direction:column;gap:5px}
+  .jstat:last-child{border-right:0}
+  .jstat b{font-family:var(--mono);font-size:17px;font-weight:600;color:var(--ink)}
+  .jstat b.up{color:var(--up)} .jstat b.down{color:var(--down)}
+  .jstat span{font-size:10px;color:var(--mute);letter-spacing:.02em}
+  @media (max-width:700px){ .jstat{border-right:0;border-bottom:1px solid var(--edge)} }

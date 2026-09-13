@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="css/logan.css">
 <link rel="stylesheet" href="css/charts.css">
 <link rel="stylesheet" href="css/news.css">
+<link rel="stylesheet" href="css/journal.css">
 </head>
 <body>
 
@@ -28,6 +29,7 @@
     <button id="nav-news" aria-pressed="false">News</button>
     <button id="nav-alerts" aria-pressed="false">Alerts <span class="cnt" id="alert-dot">off</span></button>
     <button id="nav-hist" aria-pressed="false">History</button>
+    <button id="nav-journal" aria-pressed="false">Journal <span class="cnt" id="journal-count">0</span></button>
     <button id="nav-logan" aria-pressed="false">Logan</button>
   </nav>
   <div class="symwrap">
@@ -277,6 +279,98 @@
     <p class="wnote" id="hnote"></p>
   </section>
 
+  <section id="journalview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">Journal</h1>
+        <p class="wsub">Every trade you actually took, logged against the verdict Logan gave it at entry.</p>
+      </div>
+      <div class="lgtools">
+        <button id="j-refresh" class="ghost">Refresh prices</button>
+        <button id="j-new" class="ghost">Log trade</button>
+      </div>
+    </div>
+
+    <section class="mod" id="j-form" hidden>
+      <header><h2>Log a trade</h2><p>the verdict at entry is captured automatically, if that coin's data is loaded</p></header>
+      <div class="jform">
+        <label>Coin
+          <input type="text" id="j-sym" placeholder="BTC" maxlength="14" autocomplete="off">
+        </label>
+        <label>Frame
+          <select id="j-frame"></select>
+        </label>
+        <label>Direction
+          <span class="seg2" id="j-dir" role="group" aria-label="Direction">
+            <button type="button" data-dir="long" aria-pressed="true">Long</button>
+            <button type="button" data-dir="short" aria-pressed="false">Short</button>
+          </span>
+        </label>
+        <label>Entry price
+          <input type="text" id="j-entry" inputmode="decimal" autocomplete="off">
+        </label>
+        <label>Invalidation (stop)
+          <input type="text" id="j-inval" inputmode="decimal" autocomplete="off">
+        </label>
+        <label>Size <em>(suggested from account &amp; risk)</em>
+          <input type="text" id="j-size" inputmode="decimal" autocomplete="off">
+        </label>
+        <label>Wave <em>(optional)</em>
+          <input type="text" id="j-wave" placeholder="e.g. wave 3" maxlength="24" autocomplete="off">
+        </label>
+        <label class="jnotes">Notes
+          <input type="text" id="j-notes" placeholder="optional" autocomplete="off">
+        </label>
+      </div>
+      <p class="jverdict" id="j-verdict-preview"></p>
+      <div class="jformbtns">
+        <button id="j-save" class="runbtn">Log it</button>
+        <button id="j-cancel" class="ghost">Cancel</button>
+      </div>
+    </section>
+
+    <section class="mod">
+      <header><h2>Sizing</h2><p>account × risk% ÷ (entry − invalidation) — used only to suggest a size when you log a trade</p></header>
+      <div class="jcfg">
+        <label>Account size (USD)
+          <input type="text" id="j-account" inputmode="decimal" autocomplete="off">
+        </label>
+        <label>Risk per trade (%)
+          <input type="text" id="j-riskpct" inputmode="decimal" autocomplete="off">
+        </label>
+      </div>
+    </section>
+
+    <section class="mod">
+      <header><h2>Open</h2><p id="j-open-sub">positions you are currently in</p></header>
+      <div class="mrow jhead">
+        <span>Coin</span><span>Dir</span><span>Entry</span><span>Stop</span><span>Size</span>
+        <span>Grade@entry</span><span>Unreal R</span><span>Unreal %</span><span>Age</span><span></span>
+      </div>
+      <div id="j-open-rows"><div class="loading">No open trades logged yet.</div></div>
+    </section>
+
+    <section class="mod">
+      <header><h2>Performance</h2><p>closed trades only</p></header>
+      <div id="j-stats" class="jstats"></div>
+      <div class="mrow jgradehead" id="j-grade-head" hidden>
+        <span>Grade</span><span>Trades</span><span>Win rate</span><span>Avg R</span>
+      </div>
+      <div id="j-grade-rows"></div>
+    </section>
+
+    <section class="mod">
+      <header><h2>Closed</h2><p>history of trades you have closed out</p></header>
+      <div class="mrow jhead">
+        <span>Coin</span><span>Dir</span><span>Entry</span><span>Exit</span><span>Size</span>
+        <span>Grade@entry</span><span>R</span><span>%</span><span>Closed</span><span></span>
+      </div>
+      <div id="j-closed-rows"><div class="loading">Nothing closed yet.</div></div>
+    </section>
+
+    <p class="wnote" id="jnote"></p>
+  </section>
+
   <section id="loganview" hidden>
     <div class="wtop">
       <div>
@@ -388,6 +482,7 @@
 <script src="js/ui-symbols.js"></script>
 <script src="js/ui-watchlist.js"></script>
 <script src="js/ui-history.js"></script>
+<script src="js/journal.js"></script>
 <script src="js/app.js"></script>
 <script src="js/boot.js"></script>
 </body>

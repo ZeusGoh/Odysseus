@@ -37,6 +37,40 @@ $('a-test').onclick = async ()=>{
 };
 $('nav-hist').onclick  = ()=> setView('hist');
 $('h-run').onclick     = buildHistory;
+
+/* ---------- journal ---------- */
+$('nav-journal').onclick = ()=> setView('journal');
+$('j-new').onclick = ()=> jOpenForm();
+$('j-cancel').onclick = ()=>{ $('j-form').hidden = true; };
+$('j-save').onclick = jSaveForm;
+$('j-refresh').onclick = ()=> jRefreshPrices(($('j-sym').value||'').trim().toUpperCase() || undefined);
+document.querySelectorAll('#j-dir button').forEach(b=>{
+  b.onclick = ()=> jSetDir(b.dataset.dir);
+});
+$('j-sym').addEventListener('input', jUpdateVerdictPreview);
+$('j-frame').addEventListener('change', jUpdateVerdictPreview);
+$('j-entry').addEventListener('input', jFillSuggestedSize);
+$('j-inval').addEventListener('input', jFillSuggestedSize);
+$('j-account').addEventListener('change', ()=>{ jCfg.account = parseFloat($('j-account').value)||jCfg.account; jSaveCfg(); });
+$('j-riskpct').addEventListener('change', ()=>{ jCfg.riskPct = parseFloat($('j-riskpct').value)||jCfg.riskPct; jSaveCfg(); });
+// one delegated listener per table rather than re-binding on every render
+$('j-open-rows').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  const id = b.dataset.id;
+  if(b.classList.contains('jclose'))       jStartClose(id);
+  else if(b.classList.contains('jconfirm'))     jConfirmClose(id);
+  else if(b.classList.contains('jcancelclose')) jCancelClose();
+  else if(b.classList.contains('jdel')){ jDelete(id); renderJournal(); }
+});
+$('j-closed-rows').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  const id = b.dataset.id;
+  if(b.classList.contains('jreopen')){ jReopen(id); renderJournal(); }
+  else if(b.classList.contains('jdel')){ jDelete(id); renderJournal(); }
+});
+$('j-account').value = jCfg.account;
+$('j-riskpct').value = jCfg.riskPct;
+renderJournal();
 $('nav-logan').onclick = ()=> setView('logan');
 $('lg-offbtn').onclick = ()=>{ const b=$('lg-settings'); b.hidden=false; $('lg-key').focus(); };
 $('lg-send').onclick = ()=>{ const t=$('lg-text'); lgSend(t.value); t.value=''; t.style.height='auto'; };

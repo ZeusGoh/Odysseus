@@ -11,6 +11,7 @@ function setView(next){
   $('histview').hidden     = next!=='hist';
   $('alertsview').hidden   = next!=='alerts';
   $('newsview').hidden     = next!=='news';
+  $('journalview').hidden  = next!=='journal';
   $('scanview').hidden     = next!=='scan';
   $('nav-terminal').setAttribute('aria-pressed', next==='terminal');
   $('nav-watch').setAttribute('aria-pressed', next==='watch');
@@ -19,6 +20,7 @@ function setView(next){
   $('nav-hist').setAttribute('aria-pressed', next==='hist');
   $('nav-alerts').setAttribute('aria-pressed', next==='alerts');
   $('nav-news').setAttribute('aria-pressed', next==='news');
+  $('nav-journal').setAttribute('aria-pressed', next==='journal');
   $('nav-scan').setAttribute('aria-pressed', next==='scan');
   if(next==='watch'){ renderWatch(); scanWatch(); }
   else if(next==='logan'){ lgRender(); $('lg-text').focus(); }
@@ -26,6 +28,7 @@ function setView(next){
   else if(next==='hist'){ buildHistScope(); buildHistory(); }
   else if(next==='alerts'){ buildAlertControls(); renderAlertLog(); }
   else if(next==='news'){ buildNewsControls(); renderNews(); if(!newsRan) newsScan(); }
+  else if(next==='journal'){ renderJournal(); jRefreshPrices(); }
   else if(next==='scan'){ /* results persist between visits */ }
   else { buildCharts(); }          // charts need a visible container to size to
 }

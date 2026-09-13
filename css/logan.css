@@ -1,0 +1,53 @@
+/* logan.css — Logan chat. */
+  /* ---- Logan ---- */
+  .lgtools{display:flex;gap:7px;align-items:center}
+  .lgmode{font-family:var(--mono);font-size:9.5px;padding:3px 7px;border-radius:3px;
+        background:#12171F;color:var(--mute);box-shadow:inset 0 0 0 1px var(--edge)}
+  .lgmode.api{color:var(--up);box-shadow:inset 0 0 0 1px rgba(62,207,142,.3)}
+  .lgset{padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+  .lgset label{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--mute)}
+  .lgset input{width:250px;padding:7px 10px;font-size:12px;color:var(--ink);font-family:var(--mono);
+        background:var(--void);border:1px solid var(--edge);border-radius:5px}
+  .lgset #lg-save{padding:7px 14px;border-radius:5px;font-size:12px;color:var(--mute);
+        box-shadow:inset 0 0 0 1px var(--edge)}
+  .lgset #lg-save:hover{color:var(--ink);background:var(--raise)}
+  .lgnote{flex-basis:100%;color:var(--mute);font-size:11px;line-height:1.6}
+
+  .lgchat{display:flex;flex-direction:column;min-height:460px}
+  .lglog{flex:1;overflow-y:auto;max-height:56vh;padding:16px;display:flex;flex-direction:column;gap:14px}
+  .lgmsg{display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px;align-items:baseline}
+  .lgwho{font-family:var(--mono);font-size:10px;color:var(--mute);letter-spacing:.04em}
+  .lgwho.me{color:#6E7BFF}
+  .lgoff{margin:0 0 12px;padding:12px 14px;border-radius:6px;font-size:11.5px;line-height:1.6;
+        background:rgba(245,165,36,.07);border:1px solid rgba(245,165,36,.28);color:var(--ink)}
+  .lgoff b{color:var(--pend)}
+  .lgoff button{margin-left:8px;padding:3px 9px;border:1px solid var(--edge);border-radius:4px;
+        font-family:var(--mono);font-size:10px;color:var(--mute)}
+  .lgoff button:hover{color:var(--ink);background:var(--raise)}
+  .lgtool{font-family:var(--mono);font-size:10px;color:#4A5364;padding-left:64px;
+        display:flex;align-items:center;gap:7px}
+  .lgtool::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--focus);flex:none}
+  .lgbody{font-size:12.5px;line-height:1.65;white-space:pre-wrap;word-wrap:break-word}
+  .lgbody strong{font-weight:600}
+  .lgmsg.err .lgbody{color:var(--down)}
+  .lgempty{color:var(--mute);font-size:12px;padding:26px 4px;line-height:1.7}
+  .lgempty b{color:var(--ink);font-weight:500;display:block;margin-bottom:6px}
+  .lgdots{display:inline-flex;gap:4px}
+  .lgdots i{width:4px;height:4px;border-radius:50%;background:var(--mute);animation:blink 1.2s infinite}
+  .lgdots i:nth-child(2){animation-delay:.2s} .lgdots i:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,100%{opacity:.25}50%{opacity:1}}
+
+  .lgquick{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 12px}
+  .lgquick button{padding:5px 10px;border-radius:20px;font-size:11px;color:var(--mute);
+        box-shadow:inset 0 0 0 1px var(--edge)}
+  .lgquick button:hover{color:var(--ink);background:var(--raise)}
+  .lginput{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--edge)}
+  .lginput textarea{flex:1;resize:none;padding:9px 11px;font-family:var(--sans);font-size:12.5px;
+        color:var(--ink);background:var(--void);border:1px solid var(--edge);border-radius:6px;
+        max-height:130px;line-height:1.5}
+  .lginput textarea:focus-visible{outline:1.5px solid var(--focus);outline-offset:0}
+  .lginput #lg-send{padding:0 18px;border-radius:6px;font-size:12px;font-weight:500;
+        background:#1B2230;color:var(--ink);box-shadow:inset 0 0 0 1px var(--edge)}
+  .lginput #lg-send:hover{background:var(--raise)}
+  .lginput #lg-send:disabled{opacity:.45;cursor:default}
+

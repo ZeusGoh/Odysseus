@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js" onerror="window.__lwcFailed=true"></script>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/terminal.css">
+<link rel="stylesheet" href="css/views.css">
+<link rel="stylesheet" href="css/logan.css">
+<link rel="stylesheet" href="css/charts.css">
+<link rel="stylesheet" href="css/news.css">
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand">VL</span>
+  <nav class="nav">
+    <button id="nav-terminal" aria-pressed="true">Terminal</button>
+    <button id="nav-watch" aria-pressed="false">Watchlist <span class="cnt" id="watch-count">0</span></button>
+    <button id="nav-scan" aria-pressed="false">Scanner</button>
+    <button id="nav-news" aria-pressed="false">News</button>
+    <button id="nav-alerts" aria-pressed="false">Alerts <span class="cnt" id="alert-dot">off</span></button>
+    <button id="nav-hist" aria-pressed="false">History</button>
+    <button id="nav-logan" aria-pressed="false">Logan</button>
+  </nav>
+  <div class="symwrap">
+    <div class="symtabs" id="symlist"></div>
+    <input type="text" id="symsearch" placeholder="Search any coin" maxlength="14" autocomplete="off">
+    <div id="symsugg" class="sugglist" hidden></div>
+  </div>
+  <span class="grow"></span>
+  <span class="status"><span class="pulse" id="pulse"></span><span id="livetxt">Connecting</span></span>
+  <div class="seg2" role="group" aria-label="Market">
+    <button id="m-perp" aria-pressed="true">Perp</button>
+    <button id="m-spot" aria-pressed="false">Spot</button>
+  </div>
+  <span class="status" id="src"></span>
+  <button class="ghost" id="refresh">Refresh</button>
+</div>
+
+<div class="shell">
+
+  <div id="terminalview">
+  <div class="market">
+    <div class="tick">
+      <div>
+        <div class="pair"><span class="sym">Bitcoin</span><span class="quote">/ USDT perpetual</span>
+          <button class="track" id="trackbtn">Track</button></div>
+        <div class="pxrow">
+          <span class="px num" id="px">—</span>
+          <span class="chg num">&nbsp;</span>
+        </div>
+      </div>
+      <dl class="stats">
+        <div><dt>24h high</dt><dd class="num" id="st-hi">—</dd></div>
+        <div><dt>24h low</dt><dd class="num" id="st-lo">—</dd></div>
+        <div><dt>24h volume</dt><dd class="num" id="st-vol">—</dd></div>
+        <div id="st-fund-wrap"><dt>Funding</dt><dd class="num" id="st-fund">—</dd></div>
+        <div id="st-oi-wrap"><dt>Open interest</dt><dd class="num" id="st-oi">—</dd></div>
+      </dl>
+    </div>
+    <div class="stance">
+      <h1><span id="verdict">Loading candles</span><span class="num" id="score"></span></h1>
+      <div class="strip" id="strip"></div>
+      <div class="btcrow" id="btcrow" hidden>
+        <span class="btclab">BTC</span>
+        <div class="strip btcstrip" id="btcstrip"></div>
+      </div>
+      <div class="striplab">
+        <span id="btcverdict">Width = frame weight</span>
+        <span>Select to chart</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="err" id="err" hidden></div>
+
+  <div class="duo">
+    <section class="mod">
+      <header><h2>Confirmed</h2><p>settled on closed bars</p></header>
+      <ul class="sig-list" id="list-conf"></ul>
+    </section>
+    <section class="mod">
+      <header><h2>Provisional</h2><p>live bar, subject to revision</p></header>
+      <ul class="sig-list" id="list-pot"></ul>
+    </section>
+  </div>
+
+  <section class="mod">
+    <header><h2>Frame matrix</h2><p>stochastic 5,3,3</p></header>
+    <div class="mrow mhead">
+      <span>Frame</span><span>Signal</span><span>Age</span>
+      <span>%K / %D</span><span>Spread</span><span>Zone</span><span>200</span><span>Divergence</span>
+    </div>
+    <div class="matrix" id="rows"><div class="loading">Fetching data</div></div>
+  </section>
+
+  <section class="mod">
+    <div class="ctrl">
+      <span class="lab">Charts</span>
+      <span id="tfpick" style="display:flex;gap:5px"></span>
+      <button class="tfbtn" id="pickall">All frames</button>
+      <span class="grow" style="flex:1"></span>
+      <label class="chk"><input type="checkbox" id="why"> Rejected lines</label>
+    </div>
+  </section>
+  <div id="charts"></div>
+
+  </div><!-- /terminalview -->
+
+  <section id="watchview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">Watchlist</h1>
+        <p class="wsub" id="wsub">Coins you are tracking, across all five frames.</p>
+      </div>
+      <div class="wadd">
+        <input type="text" id="wsearch" placeholder="Search a coin to track" maxlength="14" autocomplete="off">
+        <button id="waddbtn">Add</button>
+        <div id="wsugg" class="sugglist" hidden></div>
+      </div>
+    </div>
+
+    <section class="mod">
+      <div class="mrow whead">
+        <span>Coin</span><span>Last</span><span>24h</span>
+        <span>1M</span><span>1W</span><span>1D</span><span>4H</span><span>1H</span>
+        <span>Bias</span><span>BTC</span><span>200</span><span></span>
+      </div>
+      <div id="wrows"><div class="loading">No coins tracked yet. Add one above.</div></div>
+    </section>
+
+    <p class="wnote" id="wnote"></p>
+  </section>
+
+  <section id="scanview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">Scanner</h1>
+        <p class="wsub" id="scsub">Sweeps the perp board for coins turning right now.</p>
+      </div>
+      <div class="lgtools">
+        <button id="sc-run" class="ghost">Run scan</button>
+        <button id="sc-stop" class="ghost" hidden>Stop</button>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="scctl">
+        <div class="scgrp"><span class="lab">Frames</span><span id="sc-frames" class="chips"></span></div>
+        <div class="scgrp"><span class="lab">Side</span><span id="sc-side" class="chips"></span></div>
+        <div class="scgrp"><span class="lab">Depth</span><span id="sc-depth" class="chips"></span></div>
+        <div class="scgrp"><span class="lab">Cross within</span><span id="sc-fresh" class="chips"></span></div>
+        <div class="scgrp"><span class="lab">vs BTC</span><span id="sc-btc" class="chips"></span></div>
+        <div class="scgrp"><span class="lab">vs EMA 200</span><span id="sc-ema" class="chips"></span></div>
+      </div>
+      <div class="scbar" id="sc-bar" hidden><i id="sc-fill"></i><span id="sc-prog"></span></div>
+    </div>
+
+    <section class="mod">
+      <div class="mrow schead">
+        <span>#</span><span>Coin</span><span>Last</span><span>24h</span>
+        <span>Setup</span><span>Frames</span><span>BTC</span><span>200</span><span>Div</span><span>Score</span><span></span>
+      </div>
+      <div id="scrows"><div class="loading">Pick your filters and hit Run scan.</div></div>
+    </section>
+    <p class="wnote" id="scnote"></p>
+  </section>
+
+  <section id="alertsview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">Alerts</h1>
+        <p class="wsub" id="asub">Watches your tracked coins in the background and tells you once per signal.</p>
+      </div>
+      <div class="lgtools">
+        <label class="chk"><input type="checkbox" id="a-on"> Armed</label>
+        <button id="a-test" class="ghost">Send test</button>
+      </div>
+    </div>
+
+    <section class="mod">
+      <header><h2>What to send</h2><p>only coins on your watchlist</p></header>
+      <div class="scctl">
+        <div class="scgrp"><span class="lab">Frames</span><span id="a-frames" class="chips"></span></div>
+        <div class="scgrp"><span class="lab">Events</span><span id="a-events" class="chips"></span></div>
+        <div class="scgrp"><span class="lab">Filter</span><span id="a-filter" class="chips"></span></div>
+        <div class="scgrp"><span class="lab">Check every</span><span id="a-every" class="chips"></span></div>
+      </div>
+    </section>
+
+    <section class="mod">
+      <header><h2>Telegram</h2><p>message a bot you create; the token stays in this browser</p></header>
+      <div class="lgset">
+        <label>Bot token
+          <input type="password" id="a-token" placeholder="123456:ABC-DEF..." autocomplete="off">
+        </label>
+        <label>Chat id
+          <input type="text" id="a-chat" placeholder="e.g. 123456789" autocomplete="off">
+        </label>
+        <button id="a-save">Save</button>
+        <p class="lgnote" id="a-note"></p>
+      </div>
+    </section>
+
+    <section class="mod">
+      <header><h2>Recent</h2><p id="a-count">nothing sent yet this session</p></header>
+      <div id="a-log"><div class="loading">Alerts you receive will be listed here.</div></div>
+    </section>
+  </section>
+
+  <section id="histview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">Signal history</h1>
+        <p class="wsub" id="hsub">Every cross in the loaded history, scored by what price did next.</p>
+      </div>
+      <div class="lgtools">
+        <span class="hscope" id="h-scope"></span>
+        <button id="h-run" class="ghost">Rebuild</button>
+      </div>
+    </div>
+
+    <details class="help hexp">
+      <summary>How to read this</summary>
+      <p><b>What it is.</b> Every stochastic cross sitting in the loaded price history is replayed as if you
+      had taken it, then scored by what price actually did over the next <span id="hexp-h">—</span>. Nothing here is
+      a prediction — it is a record of what already happened.</p>
+      <p><b>Positive always means the signal was right.</b> Returns are direction-adjusted: for a bear cross,
+      price falling counts as a positive number. So you never have to work out which way to read a minus sign.</p>
+      <p><b>Hit</b> is the share of those signals where price went the right way. <b>Move</b> is the median
+      result — the middle one, with half better and half worse. Median rather than average, because one
+      violent move would otherwise make a mediocre group look excellent.</p>
+      <p><b>Why these distances.</b> A (5,3,3) stochastic travels from oversold to overbought in roughly
+      four bars, so a cross has finished playing out within a handful of bars. Scoring it further out than that
+      stops measuring the signal and starts measuring whatever happened afterwards — which is why longer
+      horizons flatten every row toward a coin flip.</p>
+      <p><b>A bar is not the same length on every row.</b> The columns are counted in bars, but a bar is an
+      hour on 1H and a month on 1M — so "7 bars" means seven hours on one row and seven months on another.
+      Each row prints its own real span next to the frame, and hovering a row spells out every column in
+      full. The badge under a live cross uses the real span directly, so on a daily cross it reads 1d, 3d,
+      5d, 7d rather than bars.</p>
+      <p><b>What a good row looks like.</b> A hit rate above about 55 with a positive median is a signal worth
+      respecting. A hit rate near 50 with a clearly positive median means a handful of large winners are
+      carrying it — playable, but only if you let winners run. A positive hit rate with a negative median is
+      the opposite trap: often right, badly wrong when it fails.</p>
+      <p><b>Sample size decides everything.</b> Under about 30 signals, treat a row as a rumour — those rows
+      are dimmed. The last <span id="hexp-max">—</span> bars of every chart are unscored, because a cross needs a future before it can
+      be judged, and the still-forming bar is never scored at all.</p>
+      <p><b>Rows are ranked frame-relative.</b> A percentage on the monthly and a percentage on the hourly are
+      not the same kind of number, so sorting the setup table on raw % would just sort by bar length. Each setup
+      is ranked instead by how far it beats an ordinary cross on its own frame; hover a row to see that multiple.</p>
+      <p><b>What this does not model.</b> Fees, funding and slippage are all ignored, so thin edges are
+      flattered. Signals also overlap — crosses can fire a few bars apart, so two rows may be scoring much
+      of the same price move and the sample is not as independent as the count suggests. And it is one
+      exchange, one coin, and only the history currently loaded.</p>
+    </details>
+
+    <section class="mod">
+      <header><h2>By frame</h2><p>has a cross on this timeframe been worth taking?</p></header>
+      <div class="mrow hhead" id="hhead-frames"></div>
+      <div id="hframes"><div class="loading">Load a coin, then rebuild.</div></div>
+    </section>
+
+    <section class="mod">
+      <header><h2>By setup</h2><p>which kind of cross has actually paid</p></header>
+      <div class="mrow hhead hhead2" id="hhead-setup"></div>
+      <div id="hbuckets"><div class="loading">—</div></div>
+    </section>
+    <p class="wnote" id="hnote"></p>
+  </section>
+
+  <section id="loganview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">Logan</h1>
+        <p class="wsub">Reads the live indicator state for whatever you are looking at.</p>
+      </div>
+      <div class="lgtools">
+        <span class="lgmode" id="lg-mode"></span>
+        <button id="lg-brief" class="ghost">Copy briefing</button>
+        <button id="lg-clear" class="ghost">Clear</button>
+        <button id="lg-setup" class="ghost">Connection</button>
+      </div>
+    </div>
+
+    <div class="lgoff" id="lg-offline" hidden>
+      <b>Logan is not connected.</b> Answers below come from the built-in reader: fixed rules over the
+      panel's numbers. It cannot reason, cannot look at other coins on its own, and cannot use any of
+      Logan's tools — so every answer has the same shape. Add an Anthropic API key under
+      <b>Connection</b> to switch it on.
+      <button id="lg-offbtn" class="ghost">Connection</button>
+    </div>
+
+    <div id="lg-settings" class="mod" hidden>
+      <header><h2>Connection</h2><p>needed only when running the downloaded file</p></header>
+      <div class="lgset">
+        <label>API key
+          <input type="password" id="lg-key" placeholder="sk-ant-..." autocomplete="off">
+        </label>
+        <label>Model
+          <input type="text" id="lg-model" placeholder="claude-sonnet-5">
+        </label>
+        <button id="lg-save">Save</button>
+        <p class="lgnote" id="lg-keynote"></p>
+      </div>
+    </div>
+
+    <section class="mod lgchat">
+      <div id="lg-log" class="lglog"></div>
+      <div class="lgquick" id="lg-quick"></div>
+      <div class="lginput">
+        <textarea id="lg-text" rows="1" placeholder="Ask Logan about the current setup"></textarea>
+        <button id="lg-send">Send</button>
+      </div>
+    </section>
+  </section>
+
+  <details class="help">
+    <summary>How these signals are read</summary>
+    <p><b>Confirmed versus potential.</b> Confirmed means the cross printed on a bar that has already closed, so it
+    cannot be taken back. Potential means it sits on the bar still forming: %K is through %D right now, but if it slips
+    back before that bar closes the signal disappears. Divergence splits the same way, since a run whose latest leg
+    rests on an unclosed cross can also unwind.</p>
+    <p><b>Divergence.</b> Read on geometry rather than on where it sits on the scale. Bullish joins price lows while
+    the stochastic makes higher lows, bearish joins price highs while the stochastic makes lower highs, at 50 just as
+    readily as at 10 or 90. Heights come off %K alone. A line is void if %K cuts through it between the two ends, and
+    where several swings in a row keep diverging they join into one run.</p>
+  </details>
+
+  <section id="newsview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">News</h1>
+        <p class="wsub" id="nvsub">Finds what moved abnormally, then explains why it moved.</p>
+      </div>
+      <div class="lgtools">
+        <button id="nv-run" class="ghost">Scan movers</button>
+        <button id="nv-stop" class="ghost" hidden>Stop</button>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="nvctl">
+        <div class="scgrp"><span class="lab">Window</span><span id="nv-win" class="chips"></span></div>
+        <div class="scgrp"><span class="lab">Side</span><span id="nv-side" class="chips"></span></div>
+        <div class="scgrp"><span class="lab">Min move</span><span id="nv-move" class="chips"></span></div>
+        <div class="scgrp"><span class="lab">Min book</span><span id="nv-liq" class="chips"></span></div>
+      </div>
+      <div class="nvmkt" id="nv-mkt" hidden></div>
+      <div class="nvbar" id="nv-bar" hidden><i id="nv-fill"></i></div>
+    </div>
+
+    <section class="mod">
+      <div class="nvhead">
+        <span>#</span><span>Coin</span><span>Last</span><span>Move</span><span>vs board</span>
+        <span>Read</span><span>Sharpest hour</span><span>Positioning</span><span>Funding</span><span></span>
+      </div>
+      <div id="nvrows"><div class="loading">Hit Scan movers to sweep the board.</div></div>
+    </section>
+    <p class="wnote" id="nvnote"></p>
+  </section>
+
+</div>
+
+
+<!-- Load order matters: definitions first, boot.js last. -->
+<script src="js/indicators.js"></script>
+<script src="js/market-data.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/state.js"></script>
+<script src="js/backtest.js"></script>
+<script src="js/btc-reference.js"></script>
+<script src="js/verdict.js"></script>
+<script src="js/scanner.js"></script>
+<script src="js/alerts.js"></script>
+<script src="js/news.js"></script>
+<script src="js/logan.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui-terminal.js"></script>
+<script src="js/ui-symbols.js"></script>
+<script src="js/ui-watchlist.js"></script>
+<script src="js/ui-history.js"></script>
+<script src="js/app.js"></script>
+<script src="js/boot.js"></script>
+</body>
+</html>

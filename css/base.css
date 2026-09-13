@@ -1,0 +1,27 @@
+/* base.css — Design tokens and resets. */
+  :root{
+    --void:#08090C;      /* page */
+    --panel:#0E1116;     /* modules */
+    --raise:#141922;     /* hover / selected fill */
+    --edge:#1B212B;      /* hairlines */
+    --ink:#E8ECF2;
+    --mute:#6E7889;
+    --up:#3ECF8E;
+    --down:#F0616D;
+    --pend:#F5A524;
+    --focus:#6E7BFF;     /* selection chrome — not a market colour */
+    --mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:"Geist","Inter Tight","Segoe UI",system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--void);color:var(--ink);
+    font-family:var(--sans);
+    font-size:12.5px;line-height:1.5;-webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;letter-spacing:-.013em;
+  }
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  button{font:inherit;color:var(--ink);background:none;border:0;cursor:pointer}
+  :focus-visible{outline:1.5px solid var(--focus);outline-offset:2px}
+

@@ -1,0 +1,176 @@
+/* ui-watchlist.js — Watchlist view.
+   part of VL */
+
+/* ---------- watchlist ---------- */
+function setView(next){
+  view = next;
+  $('terminalview').hidden = next!=='terminal';
+  $('watchview').hidden    = next!=='watch';
+  $('loganview').hidden    = next!=='logan';
+  $('scanview').hidden     = next!=='scan';
+  $('histview').hidden     = next!=='hist';
+  $('alertsview').hidden   = next!=='alerts';
+  $('newsview').hidden     = next!=='news';
+  $('scanview').hidden     = next!=='scan';
+  $('nav-terminal').setAttribute('aria-pressed', next==='terminal');
+  $('nav-watch').setAttribute('aria-pressed', next==='watch');
+  $('nav-logan').setAttribute('aria-pressed', next==='logan');
+  $('nav-scan').setAttribute('aria-pressed', next==='scan');
+  $('nav-hist').setAttribute('aria-pressed', next==='hist');
+  $('nav-alerts').setAttribute('aria-pressed', next==='alerts');
+  $('nav-news').setAttribute('aria-pressed', next==='news');
+  $('nav-scan').setAttribute('aria-pressed', next==='scan');
+  if(next==='watch'){ renderWatch(); scanWatch(); }
+  else if(next==='logan'){ lgRender(); $('lg-text').focus(); }
+  else if(next==='scan'){ buildScanControls(); renderScan(scanRows.length); }
+  else if(next==='hist'){ buildHistScope(); buildHistory(); }
+  else if(next==='alerts'){ buildAlertControls(); renderAlertLog(); }
+  else if(next==='news'){ buildNewsControls(); renderNews(); if(!newsRan) newsScan(); }
+  else if(next==='scan'){ /* results persist between visits */ }
+  else { buildCharts(); }          // charts need a visible container to size to
+}
+
+function addWatch(code){
+  code = (code||'').trim().toUpperCase();
+  if(!code) return;
+  const sm = symbolOf(code);
+  if(watch.includes(sm.sym)) return;
+  watch = [...watch, sm.sym];
+  store.write(watch);
+  $('wsearch').value = '';
+  $('wsugg').hidden = true;
+  renderWatch(); scanWatch(); updateWatchCount(); renderTrackBtn();
+}
+
+function removeWatch(code){
+  watch = watch.filter(c=>c!==code);
+  store.write(watch);
+  renderWatch(); updateWatchCount(); renderTrackBtn();
+}
+
+function updateWatchCount(){ $('watch-count').textContent = watch.length; }
+
+function renderTrackBtn(){
+  const b = $('trackbtn');
+  if(!b) return;
+  const on = watch.includes(active);
+  b.classList.toggle('on', on);
+  b.textContent = on ? 'Tracking' : 'Track';
+  b.title = on ? 'Remove '+active+' from the watchlist' : 'Add '+active+' to the watchlist';
+}
+
+/*  Pull every frame for each tracked coin. Deliberately sequential and on a
+    slow cadence — this is a background scan, not the live tape.             */
+async function scanWatch(){
+  // a coin added while a scan is running must not be skipped — mark and loop again
+  if(watchBusy){ watchDirty = true; return; }
+  if(!watch.length) return;
+  watchBusy = true;
+  try{
+    do{
+      watchDirty = false;
+      for(const code of [...watch]){
+        if(!watch.includes(code)) continue;          // removed mid-scan
+        const meta = symbolOf(code);
+        const first = !data[code];
+        try{
+          const res = await Promise.all(TFS.map(tf=>pull(meta, tf, first?BARS:TAIL)));
+          if(first) data[code] = {};
+          TFS.forEach((tf,i)=> data[code][tf.key] = first ? res[i] : mergeCandles(data[code][tf.key], res[i]));
+          analyse(code);
+        }catch(e){ markWatchRow(code, e.message||'unavailable'); }
+        if(view!=='watch') break;
+      }
+      if(view==='watch') renderWatch();
+    } while(watchDirty && view==='watch');
+  } finally { watchBusy = false; }
+}
+
+function markWatchRow(code, err){
+  const el = document.getElementById('wr-'+code);
+  if(el && err) el.classList.add('bad');
+}
+
+// one compact cell per frame: colour is stance, glyph is what fired
+function frameCell(code, tfKey){
+  const st = states[code] && states[code][tfKey];
+  const dv = divNow[code] && divNow[code][tfKey];
+  if(!st) return '<span class="fc idle">·</span>';
+  const v = sideOf(st);
+  const tone = v>0.15 ? 'up' : v<-0.15 ? 'down' : 'flat';
+  let glyph = '–';
+  if(st.type==='bull' || st.type==='potential-bull') glyph = '▲';
+  else if(st.type==='bear' || st.type==='potential-bear') glyph = '▼';
+  const un = st.pending ? ' un' : '';
+  const div = dv && (dv.pending || dv.barsAgo<=12) ? '<i class="dvdot '+(dv.dir==='bull'?'up':'down')+'"></i>' : '';
+  return '<span class="fc '+tone+un+'" title="'+tfKey+' '+(st.type||'')+'">'+glyph+div+'</span>';
+}
+
+function renderWatch(){
+  const host = $('wrows');
+  updateWatchCount();
+  if(!watch.length){
+    host.innerHTML = '<div class="loading">No coins tracked yet. Add one above.</div>';
+    $('wsub').textContent = 'Coins you are tracking, across all five frames.';
+    return;
+  }
+  host.innerHTML = '';
+  watch.forEach(code=>{
+    const meta = symbolOf(code);
+    const daily = data[code] && data[code]['1D'];
+    const last = daily && daily[daily.length-1];
+    const prev = daily && daily[daily.length-2];
+    const pct = last && prev ? (last.c-prev.c)/prev.c*100 : null;
+    const score = states[code] ? bias(states[code], WEIGHTS) : null;
+    const tone = score==null ? 'flat' : score>8 ? 'up' : score<-8 ? 'down' : 'flat';
+
+    const row = document.createElement('div');
+    row.className = 'mrow wrow';
+    row.id = 'wr-'+code;
+    row.innerHTML =
+      '<div class="wsym">'+nvIcon(meta.sym)+'<span class="tfk">'+meta.sym+'</span><em>'+
+        nvEsc(nvCoinName(meta.sym, meta.name===meta.sym ? '' : meta.name))+'</em></div>'+
+      '<div class="wlast num">'+(last?fmtUsd(last.c):'·')+'</div>'+
+      '<div class="wchg num '+(pct==null?'':pct>=0?'up':'down')+'">'+
+        (pct==null?'·':(pct>=0?'+':'')+pct.toFixed(2)+'%')+'</div>'+
+      TFS.map(tf=>'<div class="wf">'+frameCell(code, tf.key)+'</div>').join('')+
+      '<div class="wbias num '+tone+'">'+(score==null?'·':(score>0?'+':'')+score)+'</div>'+
+      '<div class="wbtc">'+(()=>{
+        if(code===BTC) return '<span class="btcpill">self</span>';
+        const al = alignBtc(states[code]);
+        if(!al.n) return '<span class="btcpill">·</span>';
+        const cls = al.pct>=40 ? 'with' : al.pct<=-40 ? 'against' : '';
+        const txt = al.pct>=40 ? al.agree+'/'+al.n : al.pct<=-40 ? '✕'+al.clash : '~';
+        return '<span class="btcpill '+cls+'" title="'+al.agree+' frames with BTC, '+al.clash+' against">'+txt+'</span>';
+      })()+'</div>'+
+      '<div class="wema">'+(()=>{
+        const st = stoch[code];
+        if(!st) return '<span class="tpill">·</span>';
+        const has = TFS.filter(t=>st[t.key] && st[t.key].ema && st[t.key].ema.ok);
+        if(!has.length) return '<span class="tpill">n/a</span>';
+        const up = has.filter(t=>st[t.key].ema.above).length;
+        const cls = up===has.length ? 'above' : up===0 ? 'below' : '';
+        return '<span class="tpill '+cls+'" title="above the 200 on '+up+' of '+has.length+' frames">'+
+               up+'/'+has.length+'</span>';
+      })()+'</div>'+
+      '<div class="wdel"><button class="x" data-code="'+code+'" title="Stop tracking">×</button></div>';
+
+    row.addEventListener('click', e=>{
+      if(e.target.closest('.x')) return;
+      switchSymbol(code);
+      setView('terminal');
+    });
+    host.appendChild(row);
+  });
+  host.querySelectorAll('.x').forEach(b=>{
+    b.onclick = e=>{ e.stopPropagation(); removeWatch(b.dataset.code); };
+  });
+  const aligned = watch.filter(c=>{
+    const sc = states[c] ? bias(states[c], WEIGHTS) : 0;
+    return Math.abs(sc)>8;
+  }).length;
+  $('wsub').textContent = watch.length+' tracked · '+aligned+' with a clear directional read';
+  $('wnote').textContent = store.durable()
+    ? 'Saved on this machine. Your list will be here next time you open VL.'
+    : 'This preview cannot save to disk, so the list lasts only for this session. Open the downloaded file to keep it.';
+}

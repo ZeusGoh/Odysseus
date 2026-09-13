@@ -1,0 +1,79 @@
+/* layout.css — Top rail, symbol switcher, page layout, market bar. */
+  /* ---- top rail ---- */
+  .rail{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;
+        padding:0 18px;height:52px;background:rgba(8,9,12,.92);
+        backdrop-filter:blur(10px);border-bottom:1px solid var(--edge)}
+  .brand{font-family:var(--mono);font-weight:600;font-size:15px;letter-spacing:.14em;
+         color:var(--ink);padding-right:4px}
+  .rail .grow{flex:1}
+  .status{display:flex;align-items:center;gap:7px;color:var(--mute);font-size:12px}
+  .pulse{width:6px;height:6px;border-radius:50%;background:var(--up)}
+  .pulse.stale{background:var(--down)}
+  .ghost{padding:5px 11px;border:1px solid var(--edge);border-radius:5px;font-size:12px;color:var(--mute)}
+  .seg2{display:flex;border:1px solid var(--edge);border-radius:5px;overflow:hidden}
+  .seg2 button{padding:5px 11px;font-size:11.5px;color:var(--mute)}
+  .seg2 button+button{border-left:1px solid var(--edge)}
+  .seg2 button[aria-pressed=true]{background:var(--raise);color:var(--ink)}
+  .ghost:hover{color:var(--ink);border-color:#28303C}
+
+  /* ---- symbol switcher ---- */
+  .symwrap{position:relative;display:flex;align-items:center;gap:6px}
+  .symtabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;max-width:46vw}
+  .symtabs::-webkit-scrollbar{display:none}
+  .symtab{padding:5px 10px;border-radius:5px;font-size:12px;font-weight:500;color:var(--mute);white-space:nowrap}
+  .symtab:hover{background:var(--raise);color:var(--ink)}
+  .symtab[aria-pressed=true]{background:var(--raise);color:var(--ink);box-shadow:inset 0 0 0 1px var(--focus)}
+  #symsearch{width:150px;padding:6px 10px;font-size:12px;color:var(--ink);
+        background:var(--panel);border:1px solid var(--edge);border-radius:5px}
+  #symsearch::placeholder{color:var(--mute)}
+  .sugglist{position:absolute;top:calc(100% + 7px);right:0;z-index:60;width:232px;max-height:300px;
+        overflow-y:auto;background:var(--panel);border:1px solid var(--edge);border-radius:7px;padding:4px;
+        box-shadow:0 18px 40px rgba(0,0,0,.6)}
+  .sugg{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:7px 9px;border-radius:4px}
+  .sugg:hover{background:var(--raise)}
+  .sugg b{font-family:var(--mono);font-size:12px;min-width:52px}
+  .sugg span{color:var(--mute);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ---- layout ---- */
+  .shell{max-width:1180px;margin:0 auto;padding:0 18px 72px}
+  .mod{border:1px solid var(--edge);border-radius:6px;background:var(--panel);margin-top:12px;overflow:hidden}
+  .mod > header{display:flex;align-items:baseline;gap:10px;padding:10px 14px;
+        border-bottom:1px solid var(--edge);background:linear-gradient(180deg,#10141A,#0E1116)}
+  .mod > header h2{font-size:12px;font-weight:600;letter-spacing:-.01em}
+  .mod > header h2 em{font-style:normal;color:var(--mute);font-weight:400;margin-left:4px}
+  .mod > header p{font-size:11px;color:var(--mute)}
+
+  /* ---- market bar (hero) ---- */
+  .market{display:grid;grid-template-columns:minmax(300px,1fr) minmax(300px,1fr);gap:34px;
+        align-items:center;padding:24px 2px 22px}
+  .pair{font-size:12px;color:var(--mute);margin-bottom:3px}
+  .pair .sym{color:var(--ink);font-weight:600;font-size:13px;
+        display:inline-flex;align-items:center;gap:8px;vertical-align:middle}
+  .pair .quote{margin-left:5px}
+  .pxrow{display:flex;align-items:baseline;gap:11px}
+  .px{font-size:36px;font-weight:600;letter-spacing:-.03em;transition:color .4s ease}
+  .px.up{color:var(--up)} .px.down{color:var(--down)}
+  .chg{font-size:13px;font-weight:500}
+  .tick{display:flex;align-items:flex-end;gap:30px;flex-wrap:wrap}
+  .stats{display:flex;gap:24px}
+  .stats div{display:flex;flex-direction:column;gap:3px}
+  .stats dt{font-size:10.5px;color:var(--mute)}
+  .stats dd{font-size:12.5px;font-weight:500}
+
+  .stance h1{font-size:14px;font-weight:500;letter-spacing:-.01em;margin-bottom:11px;
+        display:flex;align-items:baseline;gap:9px}
+  .stance h1 span:last-child{font-size:12.5px;font-weight:600}
+  .strip{display:flex;gap:2px;height:36px}
+  .seg{position:relative;border-radius:3px;background:#11151C;overflow:hidden;
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:inset 0 0 0 1px var(--edge)}
+  .seg:hover{box-shadow:inset 0 0 0 1px var(--focus)}
+  .seg i{position:absolute;inset:0}
+  .seg b{position:relative;font-family:var(--mono);font-size:10.5px;font-weight:600}
+  .striplab{display:flex;justify-content:space-between;margin-top:8px;color:var(--mute);font-size:10.5px}
+  .btcrow{display:flex;align-items:center;gap:8px;margin-top:5px}
+  .btclab{font-family:var(--mono);font-size:9px;color:var(--mute);width:22px;flex:none}
+  .btcstrip{height:9px;flex:1}
+  .btcstrip .seg b{display:none}
+  #btcverdict.with{color:var(--up)} #btcverdict.against{color:var(--down)}
+

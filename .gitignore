@@ -1,0 +1,11 @@
+# built output — regenerate with: python tools/build_single.py
+dist/
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# node, if tooling ever needs it
+node_modules/

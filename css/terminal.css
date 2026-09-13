@@ -1,0 +1,73 @@
+/* terminal.css — Signal modules and the frame matrix. */
+  /* ---- signal modules ---- */
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .duo .mod{margin-top:0}
+  .sig-list{list-style:none}
+  .sig-list li{display:grid;grid-template-columns:34px 1fr;gap:11px;align-items:baseline;
+        padding:11px 15px;border-bottom:1px solid var(--edge)}
+  .sig-list li:last-child{border-bottom:0}
+  .sig-list .tfk{font-family:var(--mono);font-size:11.5px;color:var(--mute)}
+  .sig-list .what{font-size:13px;font-weight:500}
+  .sig-list .how{display:block;color:var(--mute);font-size:11.5px;margin-top:2px}
+  .empty{padding:15px;color:var(--mute);font-size:12px}
+  .edge{display:block;margin-top:3px;font-family:var(--mono);font-size:10px;
+        color:var(--mute);line-height:1.5}
+  .edge.thin{opacity:.62}
+  .edgelab{color:#4A5364;letter-spacing:.02em}
+  .edgethin{color:var(--pend)}
+
+  /* ---- frame matrix ---- */
+  .matrix{width:100%}
+  .mrow{display:grid;
+        grid-template-columns:52px minmax(0,1fr) 38px 86px 100px 40px 48px 100px;
+        gap:0 14px;align-items:center;padding:11px 16px;
+        border-bottom:1px solid var(--edge)}
+  .mrow:last-child{border-bottom:0}
+  .mrow:hover{background:#11151C}
+  .mhead{color:var(--mute);font-size:10px;letter-spacing:.04em;padding:8px 16px;
+         background:#0B0E13;border-bottom:1px solid var(--edge)}
+  .mhead span{text-align:right}
+  .mhead span:nth-child(1),.mhead span:nth-child(2),.mhead span:last-child{text-align:left}
+
+  .tfk{font-family:var(--mono);font-size:12.5px;font-weight:500;
+       display:flex;align-items:baseline;gap:4px;letter-spacing:-.02em}
+  .tfk em{font-style:normal;font-size:9px;font-weight:400;color:#3E4756}
+
+  .sigcell{min-width:0}
+  .sigline{display:flex;align-items:center;gap:7px;min-width:0}
+  .stitle{font-size:12.5px;font-weight:500;white-space:nowrap}
+  .dot{width:5px;height:5px;border-radius:50%;flex:none}
+  .ring{width:5px;height:5px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1.5px var(--pend)}
+  .sub{color:var(--mute);font-size:10.5px;margin-top:2px;
+       white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tag{font-family:var(--mono);font-size:9px;font-weight:500;padding:2px 5px;border-radius:2px;
+       letter-spacing:.02em;background:rgba(245,165,36,.13);color:var(--pend);flex:none}
+  .tag.ok{background:rgba(62,207,142,.11);color:var(--up)}
+  .tag.dim{background:#161B24;color:#5B6472}
+  .cd{font-size:10px;color:var(--mute);flex:none}
+
+  .age{font-size:10.5px;color:#5B6472;text-align:right}
+
+  .kd{font-size:12px;text-align:right;white-space:nowrap;letter-spacing:-.02em}
+  .kd .kv{color:var(--ink)}
+  .kd .kslash{color:#39414E;margin:0 3px}
+  .kd .dv{color:var(--mute)}
+
+  .delta{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+  .dnum{font-size:12px;font-weight:500;letter-spacing:-.02em}
+  .delta svg{display:block;flex:none}
+
+  .zone{text-align:right}
+  .zpill{font-family:var(--mono);font-size:9.5px;font-weight:500;padding:2px 5px;
+         border-radius:2px;background:#12171F;box-shadow:inset 0 0 0 1px #1F2631}
+
+  .dvg{display:flex;align-items:center;gap:7px}
+  .chip{font-family:var(--mono);font-size:9.5px;font-weight:500;padding:2px 6px;border-radius:2px}
+  .dmeta{font-size:9.5px;color:#5B6472;white-space:nowrap}
+  .trend{text-align:right}
+  .tpill{font-family:var(--mono);font-size:9px;padding:2px 5px;border-radius:2px;
+        background:#12171F;box-shadow:inset 0 0 0 1px var(--edge);color:var(--mute)}
+  .tpill.above{color:var(--up);background:rgba(62,207,142,.10);box-shadow:inset 0 0 0 1px rgba(62,207,142,.26)}
+  .tpill.below{color:var(--down);background:rgba(240,97,109,.10);box-shadow:inset 0 0 0 1px rgba(240,97,109,.26)}
+  .dvg .none{color:#333B47}
+

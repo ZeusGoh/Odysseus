@@ -28,6 +28,8 @@ const SIG = {
   'potential-bear': {text:'Bear cross',      color:'var(--pend)', ring:true},
   'nearing-bull':   {text:'Bull cross nearing', color:'var(--pend)', ring:true},
   'nearing-bear':   {text:'Bear cross nearing', color:'var(--pend)', ring:true},
+  'watch-bull':     {text:'Potential bull',  color:'var(--up)',   ring:true},
+  'watch-bear':     {text:'Potential bear',  color:'var(--down)', ring:true},
   'holding-bull':   {text:'Above signal',    color:'var(--mute)'},
   'holding-bear':   {text:'Below signal',    color:'var(--mute)'},
   'flat':           {text:'Converged',       color:'var(--mute)'},
@@ -53,6 +55,12 @@ function signalText(key){
                : 'about '+Math.round(s.eta)+' bars at this pace';
     return {title:SIG[s.type].text, tag:'Approaching',
             sub:'%K '+s.gap.toFixed(1)+' '+side+' %D and turning into it, '+when};
+  }
+  if(s.watching){
+    const zoneWord = s.dir==='bull' ? 'oversold' : 'overbought';
+    return {title:SIG[s.type].text, tag:'Zone',
+            sub:'%K '+s.level.toFixed(1)+' '+zoneWord+' — no cross yet, watch for a '+
+                s.dir+' reversal'};
   }
   if(s.type==='flat')
     return {title:SIG.flat.text, sub:'%K and %D within '+s.gap.toFixed(1)+' at '+s.level.toFixed(1)};
@@ -121,6 +129,10 @@ function buildPanels(){
       pot.push({tf, dir:s.dir, what:(s.dir==='bull'?'Bull':'Bear')+' cross nearing',
                 how:'not crossed yet · %K '+s.gap.toFixed(1)+' '+(s.dir==='bull'?'under':'over')+
                     ' %D and turning in'+(isFinite(s.eta)?', about '+Math.round(s.eta)+' bars':'')});
+    } else if(s && s.watching){
+      pot.push({tf, dir:s.dir, what: s.dir==='bull' ? 'Potential bull' : 'Potential bear',
+                how:'%K '+s.level.toFixed(1)+' '+zoneTag(s.level)+
+                    ' — sitting at an extreme, no cross yet'});
     }
     const dv = divNow[active][tf.key];
     if(dv && (dv.pending || dv.barsAgo <= 12)){

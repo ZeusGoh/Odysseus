@@ -82,7 +82,17 @@ function crossState(k, d, freshWithin, liveBar, cfg){
   const gap = Math.abs(k[last]-d[last]);
 
   const pts = crossPoints(k, d);
-  if(!pts.length) return {type:'flat', gap, level:k[last], k:k[last], d:d[last]};
+  if(!pts.length){
+    // never crossed in the loaded history — still worth flagging if it is
+    // currently sitting at a stochastic extreme
+    const z0 = zoneOf(k[last]);
+    if(z0 !== 'middle') return {
+      type: z0==='oversold' ? 'watch-bull' : 'watch-bear',
+      dir: z0==='oversold' ? 'bull' : 'bear',
+      watching:true, pending:false, level:k[last], k:k[last], d:d[last], gap, barsAgo:0
+    };
+    return {type:'flat', gap, level:k[last], k:k[last], d:d[last]};
+  }
 
   const p = pts[pts.length-1];
   const barsAgo = last - p.i;
@@ -118,6 +128,22 @@ function crossState(k, d, freshWithin, liveBar, cfg){
     };
   }
 
+  /*  Nothing crossed and nothing is visibly turning toward %D — but if price
+      is sitting at a stochastic extreme right now, that alone is a potential
+      reversal worth flagging (oversold → watch for a bull cross, overbought
+      → watch for a bear cross), which is more useful than reporting however
+      old the last actual cross happened to be. `fresh` is deliberately left
+      unset rather than false: this isn't a stale cross, so it should not be
+      greyed out the way one is.                                            */
+  const zNow = zoneOf(k[last]);
+  if(zNow !== 'middle'){
+    return {
+      type: zNow==='oversold' ? 'watch-bull' : 'watch-bear',
+      dir: zNow==='oversold' ? 'bull' : 'bear',
+      watching:true, pending:false, level:k[last], k:k[last], d:d[last], gap, barsAgo
+    };
+  }
+
   // otherwise report the last cross as before, however old it is
   return {
     type: p.dir, dir: p.dir, pending:false, barsAgo, level: p.level,
@@ -135,6 +161,8 @@ function sideOf(s){
     case 'potential-bear': return -0.6;
     case 'nearing-bull': return 0.35;      // leaning, not yet a signal
     case 'nearing-bear': return -0.35;
+    case 'watch-bull': return 0.25;        // sitting at an extreme, no cross yet at all
+    case 'watch-bear': return -0.25;
     case 'flat': return s.level>=50 ? 0.4 : -0.4;
     default: return 0;
   }

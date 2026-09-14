@@ -2,7 +2,7 @@
    part of VL */
 const {load} = require('./harness');
 const app = load(['indicators.js']);
-const {sma, stochastic, zoneOf, crossQuality, crossPoints, crossState, ema, emaRead, divergences} = app;
+const {sma, stochastic, zoneOf, crossQuality, crossPoints, crossState, ema, emaRead, divergences, sideOf} = app;
 
 suite('sma');
 check('simple window', sma([1,2,3,4,5], 3), [null,null,2,3,4]);
@@ -61,6 +61,41 @@ suite('crossState');
   check('no cross at all reads flat',
         crossState([50,50,50,50,50], [40,40,40,40,40], 3, null, {}).type, 'flat');
 }
+
+suite('crossState — sitting at an extreme with no fresh cross is its own category');
+{
+  // an old bear cross nine bars back, but %K has since gone flat deep in
+  // oversold — more useful to flag that than to keep reporting the old cross
+  const kOS = [60,60,60,60,60, 15,15,15,15,15,15,15,15,15,15];
+  const dOS = Array(15).fill(50);
+  const wBull = crossState(kOS, dOS, 3, null, {});
+  check('an oversold flat-line reads as a potential bull, not a stale bear',
+        wBull.type, 'watch-bull');
+  check('direction points at the reversal being watched for', wBull.dir, 'bull');
+  check('carries the watching flag', wBull.watching, true);
+  check('and the current %K level', wBull.level, 15);
+  check('fresh is left unset rather than false, so the UI does not grey it out',
+        wBull.fresh, undefined);
+
+  // the mirror case: an old bull cross, now flat deep in overbought
+  const kOB = [40,40,40,40,40, 85,85,85,85,85,85,85,85,85,85];
+  const dOB = Array(15).fill(50);
+  const wBear = crossState(kOB, dOB, 3, null, {});
+  check('an overbought flat-line reads as a potential bear', wBear.type, 'watch-bear');
+  check('direction points at the reversal being watched for', wBear.dir, 'bear');
+
+  // never crossed at all in the loaded history, but already sitting at an extreme
+  check('never having crossed does not suppress the zone watch (oversold)',
+        crossState([15,15,15,15,15], [18,18,18,18,18], 3, null, {}).type, 'watch-bull');
+  check('never having crossed does not suppress the zone watch (overbought)',
+        crossState([85,85,85,85,85], [82,82,82,82,82], 3, null, {}).type, 'watch-bear');
+}
+
+suite('sideOf — zone-watch leans, but less than an actual nearing cross');
+check('a potential-bull zone watch leans modestly long', sideOf({type:'watch-bull'}), 0.25);
+check('a potential-bear zone watch leans modestly short', sideOf({type:'watch-bear'}), -0.25);
+ok('weaker than a nearing cross in the same direction',
+   sideOf({type:'watch-bull'}) < sideOf({type:'nearing-bull'}));
 
 suite('EMA 200');
 check('an EMA of a straight line is that line', ema([1,2,3,4,5], 3).slice(2), [2,3,4]);

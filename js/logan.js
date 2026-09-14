@@ -32,7 +32,7 @@ function lgSaveCfg(){
 function lgActiveKey(){ return lgCfg.provider === 'gemini' ? lgCfg.geminiKey : lgCfg.anthropicKey; }
 function lgActiveModel(){
   return lgCfg.provider === 'gemini'
-    ? (lgCfg.geminiModel || 'gemini-2.5-flash')
+    ? (lgCfg.geminiModel || 'gemini-3.8-flash')
     : (lgCfg.anthropicModel || 'claude-sonnet-5');
 }
 function lgHasKey(){ return !!lgActiveKey(); }
@@ -642,7 +642,9 @@ function lgInit(){
     ? 'A key is saved in this browser. It is sent only to '+lgProviderHost()+'.'
     : 'Claude: get a key at console.anthropic.com (paid). Gemini: get a free key at aistudio.google.com '+
       '(a generous free tier, no card needed — Google may use free-tier prompts for training outside '+
-      'the EU/UK/EEA). Either way the key stays in this browser and is sent only to that provider.';
+      'the EU/UK/EEA). Either way the key stays in this browser and is sent only to that provider. '+
+      'Leave the Gemini model blank for the newest free Flash; if it ever comes back rejected, name an '+
+      'older one (gemini-3.7-flash, gemini-3.6-flash, gemini-3.5-flash).';
   $('lg-keynote').textContent = isFileOrigin() ? base+' — '+FILE_HINT : base;
   lgBuildQuick();
   lgSetMode();

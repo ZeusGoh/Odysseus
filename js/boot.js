@@ -49,6 +49,7 @@ document.querySelectorAll('#j-dir button').forEach(b=>{
 });
 $('j-sym').addEventListener('input', jUpdateVerdictPreview);
 $('j-frame').addEventListener('change', jUpdateVerdictPreview);
+$('j-entrytime').addEventListener('change', jUpdateVerdictPreview);
 $('j-entry').addEventListener('input', jFillSuggestedSize);
 $('j-inval').addEventListener('input', jFillSuggestedSize);
 $('j-account').addEventListener('change', ()=>{ jCfg.account = parseFloat($('j-account').value)||jCfg.account; jSaveCfg(); });

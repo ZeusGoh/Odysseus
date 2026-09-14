@@ -309,6 +309,9 @@
         <label>Entry price
           <input type="text" id="j-entry" inputmode="decimal" autocomplete="off">
         </label>
+        <label>Entered <em>(edit if logging this later)</em>
+          <input type="datetime-local" id="j-entrytime">
+        </label>
         <label>Invalidation (stop)
           <input type="text" id="j-inval" inputmode="decimal" autocomplete="off">
         </label>
@@ -357,6 +360,11 @@
         <span>Grade</span><span>Trades</span><span>Win rate</span><span>Avg R</span>
       </div>
       <div id="j-grade-rows"></div>
+    </section>
+
+    <section class="mod">
+      <header><h2>Patterns</h2><p>closed trades, broken down by when you took them and what condition they were in</p></header>
+      <div id="j-patterns" class="jpatterns"><div class="loading">Close a few trades to start seeing patterns.</div></div>
     </section>
 
     <section class="mod">

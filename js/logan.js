@@ -575,6 +575,13 @@ async function lgCallGemini(){
 function lgErrorHint(e){
   const msg = e.message || String(e);
 
+  // the model itself is swamped — nothing to do with the key, the request or us
+  if(lgTransient(e)){
+    return lgProviderLabel()+'’s servers are busy right now, so the model turned the request '+
+      'away. I already tried twice. This is on their side and usually passes in a minute — '+
+      'ask again shortly, or switch provider in Connection if it drags on.';
+  }
+
   // a free-tier ceiling, not a fault — it clears on its own
   if(e.status === 429 || /quota|rate limit|RESOURCE_EXHAUSTED/i.test(msg)){
     const wait = /retry in ([\d.]+)\s*s/i.exec(msg);
@@ -590,6 +597,25 @@ function lgErrorHint(e){
       would be a red herring.                                                 */
   if(isFileOrigin() && !e.reached) hint += '\n\n'+FILE_HINT;
   return hint;
+}
+
+/*  "Busy, try later" is worth one more knock before bothering the user — these
+    clear in seconds. A quota refusal is not: the window has to actually pass,
+    and knocking again only spends more of it.                                */
+function lgTransient(e){
+  return e.status === 503 || e.status === 500 ||
+         /high demand|overloaded|unavailable|try again later/i.test(e.message || '');
+}
+
+async function lgCallWithRetry(fn){
+  try{ return await fn(); }
+  catch(e){
+    if(!lgTransient(e)) throw e;
+    lgChat.push({role:'tool', content:'model busy — waiting a moment and trying again'});
+    lgRender();
+    await new Promise(r => setTimeout(r, 2500));
+    return fn();
+  }
 }
 
 function lgApiError(j, status){
@@ -625,7 +651,7 @@ async function lgSend(text){
     for(let turn=0; turn<LG_MAX_TURNS; turn++){
 
       if(gemini){
-        const j = await lgCallGemini();
+        const j = await lgCallWithRetry(lgCallGemini);
         const cand = j.candidates && j.candidates[0];
         const parts = (cand && cand.content && cand.content.parts) || [];
         const calls = parts.filter(p=>p.functionCall);
@@ -655,7 +681,7 @@ async function lgSend(text){
         return;
       }
 
-      const j = await lgCallAnthropic();
+      const j = await lgCallWithRetry(lgCallAnthropic);
 
       if(j.stop_reason === 'tool_use'){
         lgApi.push({role:'assistant', content:j.content});

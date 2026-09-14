@@ -4,7 +4,7 @@
    part of Odysseus */
 const {load} = require('./harness');
 const app = load(['cloud.js', 'logan.js']);   // logan persists through cloud.js's vlPut
-const {toGeminiSchema, LG_TOOLS, GEMINI_TOOLS, lgToolLabel, lgErrorHint, lgApiError} = app;
+const {toGeminiSchema, LG_TOOLS, GEMINI_TOOLS, lgToolLabel, lgErrorHint, lgApiError, lgTransient} = app;
 
 suite('toGeminiSchema — type casing');
 check('object becomes OBJECT', toGeminiSchema({type:'object', properties:{}}).type, 'OBJECT');
@@ -134,4 +134,25 @@ suite('lgErrorHint — a refusal from the API is not a connection problem');
   ok('a genuine connection failure still reports the underlying message',
      out.includes('Failed to fetch'));
   check('nothing marks it as reached', dead.reached, undefined);
+}
+
+suite('lgTransient — which failures are worth another knock');
+{
+  const busy = lgApiError({error:{message:
+    'This model is currently experiencing high demand. Spikes in demand are usually temporary. '+
+    'Please try again later.'}}, 503);
+  ok('a high-demand refusal is transient', lgTransient(busy));
+  const out = lgErrorHint(busy);
+  ok('it is reported as their servers being busy, not as a failure to connect',
+     /servers are busy/i.test(out));
+  ok('it does not repeat the raw "could not reach the API" framing',
+     !/could not reach/i.test(out));
+  ok('it says a retry already happened, so the user is not told to do it twice',
+     /tried twice/i.test(out));
+
+  const quota = lgApiError({error:{message:'Quota exceeded, please retry in 52.0s.'}}, 429);
+  ok('a quota refusal is NOT retried — the window has to pass', !lgTransient(quota));
+
+  const badKey = lgApiError({error:{message:'API key not valid.'}}, 400);
+  ok('a bad key is not transient either', !lgTransient(badKey));
 }

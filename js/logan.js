@@ -29,15 +29,36 @@ function lgSaveCfg(){
   return vlPut(LG_KEY, JSON.stringify(lgCfg));
 }
 
-function lgActiveKey(){ return lgCfg.provider === 'gemini' ? lgCfg.geminiKey : lgCfg.anthropicKey; }
-function lgActiveModel(){
-  return lgCfg.provider === 'gemini'
-    ? (lgCfg.geminiModel || 'gemini-3.8-flash')
-    : (lgCfg.anthropicModel || 'claude-sonnet-5');
-}
+/*  Three backends, one agent. Two of them are free, and that is the point of
+    having three: a free tier is not a promise, it is a queue, and when Gemini
+    answers "high demand" or "quota exceeded" the useful thing is somewhere
+    else to go rather than a better model.
+
+    Each keeps its key and model under its own field so switching never
+    clobbers another's.                                                      */
+const LG_PROVIDERS = {
+  anthropic:  {label:'Claude',     host:'api.anthropic.com',
+               keyField:'anthropicKey',  modelField:'anthropicModel',
+               model:'claude-sonnet-5'},
+  gemini:     {label:'Gemini',     host:'generativelanguage.googleapis.com',
+               keyField:'geminiKey',     modelField:'geminiModel',
+               model:'gemini-3.8-flash'},
+  /*  OpenRouter is a doorway rather than a lab: one key reaches every free
+      tool-capable model on their board. The default is their own free router,
+      which picks whichever is up — the right behaviour for a fallback, since
+      a named model that happens to be down is exactly the problem this is
+      here to solve.                                                          */
+  openrouter: {label:'OpenRouter', host:'openrouter.ai',
+               keyField:'openrouterKey', modelField:'openrouterModel',
+               model:'openrouter/free'}
+};
+
+function lgProv(){ return LG_PROVIDERS[lgCfg.provider] || LG_PROVIDERS.anthropic; }
+function lgActiveKey(){ return lgCfg[lgProv().keyField]; }
+function lgActiveModel(){ return lgCfg[lgProv().modelField] || lgProv().model; }
 function lgHasKey(){ return !!lgActiveKey(); }
-function lgProviderLabel(){ return lgCfg.provider === 'gemini' ? 'Gemini' : 'Claude'; }
-function lgProviderHost(){ return lgCfg.provider === 'gemini' ? 'generativelanguage.googleapis.com' : 'api.anthropic.com'; }
+function lgProviderLabel(){ return lgProv().label; }
+function lgProviderHost(){ return lgProv().host; }
 
 /* ---------- Logan's memory ----------
    The visible chat and the API-shaped transcript used to live only in memory,
@@ -543,6 +564,38 @@ async function lgCallAnthropic(){
   return j;
 }
 
+/*  OpenRouter speaks the OpenAI shape, which is the one format LG_TOOLS needs
+    almost no translating for: input_schema is already plain JSON Schema with
+    the lowercase type names OpenAI expects, unlike Gemini's uppercase enum.  */
+const OPENAI_TOOLS = LG_TOOLS.map(t => ({
+  type:'function',
+  function:{name:t.name, description:t.description, parameters:t.input_schema}
+}));
+
+async function lgCallOpenRouter(){
+  const body = {
+    model: lgActiveModel(),
+    max_tokens: 1500,
+    messages: [{role:'system', content:
+      LOGAN_SYSTEM + '\n\nTHE COIN CURRENTLY OPEN (JSON):\n' + JSON.stringify(loganContext())}]
+      .concat(lgApi),
+    tools: OPENAI_TOOLS
+  };
+  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method:'POST',
+    headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+lgActiveKey(),
+             'X-Title':'Odysseus'},
+    body: JSON.stringify(body)
+  });
+  const j = await r.json();
+  if(!r.ok) throw lgApiError(j, r.status);
+  /*  A free model that is momentarily unavailable comes back 200 with the
+      failure in the body rather than an HTTP error, so it has to be caught
+      here or the loop reads an empty answer as a real one.                   */
+  if(j.error) throw lgApiError(j, j.error.code || 502);
+  return j;
+}
+
 /*  Gemini's generateContent, called the same way Google's own web playground
     calls it — a plain client-side fetch, key as a query param, no special
     browser-access header the way Anthropic needs one.                       */
@@ -643,12 +696,47 @@ async function lgSend(text){
   if(!lgHasKey()){ lgPush('assistant', await offlineAnswer(text)); return; }
 
   const gemini = lgCfg.provider === 'gemini';
+  const openai = lgCfg.provider === 'openrouter';   // OpenAI-shaped, same as Anthropic's for a plain user turn
   lgApi.push(gemini ? {role:'user', parts:[{text}]} : {role:'user', content:text});
   lgSaveChat();   // keep the two transcripts in step; lgPush above only saw the chat side
   lgBusy = true; $('lg-send').disabled = true; lgRender();
 
   try{
     for(let turn=0; turn<LG_MAX_TURNS; turn++){
+
+      if(openai){
+        const j = await lgCallWithRetry(lgCallOpenRouter);
+        const msg = (j.choices && j.choices[0] && j.choices[0].message) || {};
+        const calls = msg.tool_calls || [];
+
+        if(calls.length){
+          if(msg.content && msg.content.trim()) lgChat.push({role:'assistant', content:msg.content.trim()});
+          lgApi.push(msg);                       // the model's own turn, echoed back verbatim
+
+          for(const tc of calls){
+            const fn = tc.function || {};
+            /*  arguments arrives as a JSON string, not an object, and a model
+                that fumbles the encoding should cost one tool result rather
+                than the whole conversation.                                  */
+            let args = {};
+            try{ args = JSON.parse(fn.arguments || '{}'); }catch(e){ args = {}; }
+            lgChat.push({role:'tool', content:lgToolLabel(fn.name, args)});
+            lgRender();
+            let out;
+            try{ out = await lgRunTool(fn.name, args); }
+            catch(e){ out = {error:e.message}; }
+            lgApi.push({role:'tool', tool_call_id:tc.id,
+                        content: JSON.stringify(lgTruncated(out)).slice(0, 24000)});
+          }
+          continue;
+        }
+
+        const outText = (msg.content || '').trim();
+        lgApi.push({role:'assistant', content: outText || '(no answer)'});
+        lgBusy = false; $('lg-send').disabled = false;
+        lgPush('assistant', outText || 'No response came back.');
+        return;
+      }
 
       if(gemini){
         const j = await lgCallWithRetry(lgCallGemini);
@@ -758,8 +846,9 @@ function lgSetMode(){
 function lgShowProviderFields(p){
   document.querySelectorAll('#lg-provider button').forEach(b=>
     b.setAttribute('aria-pressed', b.dataset.provider === p));
-  $('lg-anthropic-fields').hidden = $('lg-anthropic-fields-model').hidden = p !== 'anthropic';
-  $('lg-gemini-fields').hidden = $('lg-gemini-fields-model').hidden = p !== 'gemini';
+  $('lg-anthropic-fields').hidden  = $('lg-anthropic-fields-model').hidden  = p !== 'anthropic';
+  $('lg-gemini-fields').hidden     = $('lg-gemini-fields-model').hidden     = p !== 'gemini';
+  $('lg-openrouter-fields').hidden = $('lg-openrouter-fields-model').hidden = p !== 'openrouter';
 }
 
 function lgInit(){
@@ -768,15 +857,19 @@ function lgInit(){
   $('lg-model').value = lgCfg.anthropicModel || '';
   $('lg-gkey').value = lgCfg.geminiKey || '';
   $('lg-gmodel').value = lgCfg.geminiModel || '';
+  $('lg-orkey').value = lgCfg.openrouterKey || '';
+  $('lg-ormodel').value = lgCfg.openrouterModel || '';
   lgShowProviderFields(lgCfg.provider || 'anthropic');
 
   const base = lgHasKey()
     ? 'A key is saved in this browser. It is sent only to '+lgProviderHost()+'.'
-    : 'Claude: get a key at console.anthropic.com (paid). Gemini: get a free key at aistudio.google.com '+
-      '(a generous free tier, no card needed — Google may use free-tier prompts for training outside '+
-      'the EU/UK/EEA). Either way the key stays in this browser and is sent only to that provider. '+
-      'Leave the Gemini model blank for the newest free Flash; if it ever comes back rejected, name an '+
-      'older one (gemini-3.7-flash, gemini-3.6-flash, gemini-3.5-flash).';
+    : 'Claude: a key from console.anthropic.com (paid). Gemini: a free key from aistudio.google.com — '+
+      'generous, no card, though Google may train on free-tier prompts outside the EU/UK/EEA. '+
+      'OpenRouter: a free key from openrouter.ai — one key reaches every free tool-capable model on '+
+      'their board, capped at 50 requests a day. Keeping both free ones set up means a quota wall on '+
+      'one is a toggle away from the other rather than the end of the conversation. Every key stays in '+
+      'this browser and is sent only to its own provider. Leave a Model box blank for that provider\'s '+
+      'default.';
   $('lg-keynote').textContent = isFileOrigin() ? base+' — '+FILE_HINT : base;
   lgBuildQuick();
   lgSetMode();

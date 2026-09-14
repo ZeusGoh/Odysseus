@@ -156,3 +156,36 @@ suite('lgTransient — which failures are worth another knock');
   const badKey = lgApiError({error:{message:'API key not valid.'}}, 400);
   ok('a bad key is not transient either', !lgTransient(badKey));
 }
+
+suite('OPENAI_TOOLS — the OpenRouter shape, which needs no type rewriting');
+{
+  const {OPENAI_TOOLS} = app;
+  check('one entry per tool', OPENAI_TOOLS.length, LG_TOOLS.length);
+  check('names line up 1:1, same order',
+        OPENAI_TOOLS.map(t=>t.function.name), LG_TOOLS.map(t=>t.name));
+  ok('every entry is declared as a function tool',
+     OPENAI_TOOLS.every(t=>t.type === 'function'));
+  ok('descriptions carry over',
+     OPENAI_TOOLS.every((t,i)=> t.function.description === LG_TOOLS[i].description));
+  // the whole reason this needs no converter: OpenAI takes plain JSON Schema,
+  // lowercase types and all, exactly as LG_TOOLS already writes them
+  check('the schema is passed through untouched, unlike Gemini\'s',
+        OPENAI_TOOLS[0].function.parameters, LG_TOOLS[0].input_schema);
+  ok('lowercase types are preserved rather than upper-cased',
+     OPENAI_TOOLS[0].function.parameters.type === 'object');
+}
+
+suite('LG_PROVIDERS — three backends, each with its own key and model');
+{
+  const {LG_PROVIDERS} = app;
+  check('all three are registered',
+        Object.keys(LG_PROVIDERS).sort(), ['anthropic','gemini','openrouter']);
+  const fields = Object.values(LG_PROVIDERS).map(p=>p.keyField);
+  check('no two providers share a key field', new Set(fields).size, fields.length);
+  const models = Object.values(LG_PROVIDERS).map(p=>p.modelField);
+  check('no two providers share a model field', new Set(models).size, models.length);
+  ok('every provider names a default model',
+     Object.values(LG_PROVIDERS).every(p=>!!p.model));
+  check('OpenRouter defaults to the free auto-router, not a named model that could be down',
+        LG_PROVIDERS.openrouter.model, 'openrouter/free');
+}

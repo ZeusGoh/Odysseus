@@ -75,7 +75,7 @@ renderJournal();
 $('nav-logan').onclick = ()=> setView('logan');
 $('lg-offbtn').onclick = ()=>{
   const b=$('lg-settings'); b.hidden=false;
-  ((lgCfg.provider==='gemini') ? $('lg-gkey') : $('lg-key')).focus();
+  $({anthropic:'lg-key', gemini:'lg-gkey', openrouter:'lg-orkey'}[lgCfg.provider] || 'lg-key').focus();
 };
 document.querySelectorAll('#lg-provider button').forEach(b=>{
   b.onclick = ()=> lgShowProviderFields(b.dataset.provider);
@@ -101,6 +101,8 @@ $('lg-save').onclick = ()=>{
   lgCfg.anthropicModel = $('lg-model').value.trim();
   lgCfg.geminiKey = $('lg-gkey').value.trim();
   lgCfg.geminiModel = $('lg-gmodel').value.trim();
+  lgCfg.openrouterKey = $('lg-orkey').value.trim();
+  lgCfg.openrouterModel = $('lg-ormodel').value.trim();
   const ok = lgSaveCfg();
   /*  The two providers' transcripts are not interchangeable, so switching
       backends drops the replayable context while leaving the visible chat

@@ -1,10 +1,10 @@
-/* harness.js — loads VL's browser files into a Node sandbox so they can be tested
+/* harness.js — loads Odysseus's browser files into a Node sandbox so they can be tested
    directly. This is what splitting the app bought us: the maths used to be
    trapped inside a 5,000-line HTML file and had to be scraped out to be tested.
 
    Usage:  const {load} = require('./harness');
            const app = load(['indicators.js', 'backtest.js']);
-   part of VL */
+   part of Odysseus */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 
 const JS_DIR = path.join(__dirname, '..', 'js');

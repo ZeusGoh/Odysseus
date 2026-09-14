@@ -1,5 +1,5 @@
 /* run.js — the test runner.  `node tests/run.js`  (add a name to filter)
-   part of VL */
+   part of Odysseus */
 const fs = require('fs'), path = require('path');
 
 let pass = 0, fail = 0, current = '';

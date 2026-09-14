@@ -1,5 +1,5 @@
 /* ui-history.js — History view — the backtest tables.
-   part of VL */
+   part of Odysseus */
 
 /* ---------- history view ---------- */
 let histScope = 'coin', histData = null, histBusy = false;

@@ -1,7 +1,7 @@
 /* journal.test.js — position sizing, R-multiples, and the stats rollups,
    including the veto check: does jGradeStats actually read the verdict
    engine's own grades rather than something journal.js invented.
-   part of VL */
+   part of Odysseus */
 const {load} = require('./harness');
 const app = load(['indicators.js','market-data.js','storage.js','state.js','backtest.js',
                    'btc-reference.js','logan.js','verdict.js','journal.js']);

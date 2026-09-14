@@ -1,7 +1,7 @@
 /* journal.js — Trade journal. Every trade you actually take, logged against the
    verdict the app gave it at entry, so the backtest's theoretical edge can be
    checked against what really happened rather than assumed.
-   part of VL */
+   part of Odysseus */
 
 /* ---------- persistence ----------
    Same pattern as alerts.js and news.js: each feature owns its own key rather
@@ -251,7 +251,7 @@ function jGradeCls(g){
 }
 
 // the row currently expanded into "closing" mode — an inline exit-price field
-// rather than a native prompt(), so it looks and behaves like the rest of VL
+// rather than a native prompt(), so it looks and behaves like the rest of Odysseus
 let jClosingId = null;
 
 function renderJournalOpen(){

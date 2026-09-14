@@ -1,6 +1,6 @@
 /* backtest.test.js — the replay engine, the horizon labels, and the sign
    convention that has bitten this app twice.
-   part of VL */
+   part of Odysseus */
 const {load} = require('./harness');
 const app = load(['indicators.js', 'market-data.js', 'backtest.js']);
 const {replayCrosses, summarise, frameBaseline, bucketEdge, spanLabel, spanShort,

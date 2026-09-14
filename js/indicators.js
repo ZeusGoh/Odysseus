@@ -1,7 +1,7 @@
 /* indicators.js — Indicator maths. Pure functions over price arrays — stochastic (5,3,3), crosses,
    swings, divergence, the 200 EMA. No DOM, no network, no app state: everything here
    can be unit-tested on synthetic candles.
-   part of VL */
+   part of Odysseus */
 /* ==MATH_START== */
 function sma(arr, p){
   const out = new Array(arr.length).fill(null);

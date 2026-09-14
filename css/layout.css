@@ -5,11 +5,11 @@
         backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);
         border-bottom:1px solid var(--edge);
         box-shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 12px 28px -18px rgba(0,0,0,.7)}
-  .brand{font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:.16em;
-         padding-right:10px;position:relative;
+  .brand{font-family:var(--mono);font-weight:700;font-size:14px;letter-spacing:.045em;
+         padding-right:14px;position:relative;white-space:nowrap;
          background:linear-gradient(135deg,#FFFFFF 10%,#9CA6BC 90%);
          -webkit-background-clip:text;background-clip:text;color:transparent}
-  .brand::after{content:'';position:absolute;top:1px;right:0;width:5px;height:5px;
+  .brand::after{content:'';position:absolute;top:1px;right:4px;width:5px;height:5px;
         border-radius:50%;background:var(--focus);box-shadow:0 0 9px 1.5px rgba(110,123,255,.85)}
   .rail .grow{flex:1}
   .status{display:flex;align-items:center;gap:7px;color:var(--mute);font-size:12px}

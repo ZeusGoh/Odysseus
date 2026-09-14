@@ -1,6 +1,6 @@
 /* boot.js — Boot. Every DOM wiring line and every start-up call, in their original order.
    Loaded last, so everything it touches is already defined.
-   part of VL */
+   part of Odysseus */
 
 $('trackbtn').onclick = ()=>{
   if(watch.includes(active)) removeWatch(active);
@@ -25,9 +25,9 @@ $('a-save').onclick = ()=>{
 };
 $('a-test').onclick = async ()=>{
   $('a-test').textContent = 'Sending…';
-  const res = await sendTelegram('VL test alert — if you can read this, Telegram is wired up correctly.');
-  notifyBrowser('VL test alert', 'Browser notifications are working.');
-  alertLog.unshift({t:Date.now(), title:'VL test alert', body:'manual test',
+  const res = await sendTelegram('Odysseus test alert — if you can read this, Telegram is wired up correctly.');
+  notifyBrowser('Odysseus test alert', 'Browser notifications are working.');
+  alertLog.unshift({t:Date.now(), title:'Odysseus test alert', body:'manual test',
                     tg: res.ok ? 'sent' : (res.why||'off')});
   renderAlertLog();
   $('a-test').textContent = res.ok ? 'Sent' : 'Failed';

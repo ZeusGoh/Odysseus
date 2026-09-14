@@ -1,6 +1,6 @@
 /* backtest.js — Signal history — the backtest engine. Replays every past cross, scores what price
    did over 1/3/5/7 bars, and buckets the results by frame and setup.
-   part of VL */
+   part of Odysseus */
 
 /* ---------- signal history ----------
    Every cross the engine can see in the loaded history is replayed and scored

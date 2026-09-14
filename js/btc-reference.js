@@ -1,6 +1,6 @@
 /* btc-reference.js — BTC reference. Keeps BTC loaded regardless of what is on screen, so any coin can be
    read with or against the market leader.
-   part of VL */
+   part of Odysseus */
 
 /* ---------- BTC reference ----------
    The whole strategy rests on alts only being worth taking when the market

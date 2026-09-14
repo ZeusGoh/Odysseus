@@ -1,4 +1,4 @@
-# VL
+# Odysseus
 
 A stochastic terminal for crypto perpetuals. Multi-timeframe (5,3,3) stochastic
 across 1H / 4H / 1D / 1W / 1M, a backtest that scores every past cross, a board

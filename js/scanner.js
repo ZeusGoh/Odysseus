@@ -1,5 +1,5 @@
 /* scanner.js — Scanner. Sweeps the whole perpetual board for setups turning right now.
-   part of VL */
+   part of Odysseus */
 
 /* ---------- scanner ---------- */
 const SCAN_BARS = 320;          // 5,3,3 and divergence need little, but EMA 200 needs 200+

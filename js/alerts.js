@@ -1,6 +1,6 @@
 /* alerts.js — Alerts — what is worth announcing, Telegram and browser delivery, and the
    alerts view UI. Outbound messages stay behind an explicit human switch.
-   part of VL */
+   part of Odysseus */
 
 /* ---------- alerts ----------
    Watches the tracked coins in the background and delivers once per event.
@@ -97,7 +97,7 @@ function alertEvents(code, key){
 function alertText(code, key, ev){
   const meta = symbolOf(code);
   const arrow = ev.dir==='bull' ? 'LONG' : 'SHORT';
-  const head = 'VL · '+meta.sym+' '+key+' '+arrow+' — '+
+  const head = 'Odysseus · '+meta.sym+' '+key+' '+arrow+' — '+
     (ev.kind==='confirmed' ? 'cross confirmed'
      : ev.kind==='unsettled' ? 'cross on the live bar'
      : ev.kind==='nearing' ? '%K turning into %D'

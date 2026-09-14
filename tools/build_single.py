@@ -7,7 +7,7 @@ like the split app and needs nothing next to it.
 
     python tools/build_single.py
 
-part of VL
+part of Odysseus
 """
 import re
 import sys

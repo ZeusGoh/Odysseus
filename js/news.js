@@ -1,6 +1,6 @@
 /* news.js — News / catalyst. Why did this coin move? Board sweep and beta decomposition first,
    then headlines, then optionally Claude with web search.
-   part of VL */
+   part of Odysseus */
 /* ============================================================
    NEWS — what moved, and why it moved.
 

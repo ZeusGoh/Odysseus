@@ -1,6 +1,6 @@
 /* market-data.js — Market data. Timeframes and their weights, the Bybit endpoints, candle fetching
    and merging, the curated symbol list. The only place that talks to the exchange.
-   part of VL */
+   part of Odysseus */
 
 /* ---------- data ---------- */
 const TFS = [

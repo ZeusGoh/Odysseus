@@ -1,5 +1,5 @@
 /* storage.js — Persistence. localStorage with an in-memory fallback for contexts that block it.
-   part of VL */
+   part of Odysseus */
 
 /* ---------- persistence ----------
    Written to localStorage so the watchlist survives a reload. In sandboxed

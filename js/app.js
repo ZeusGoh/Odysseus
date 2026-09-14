@@ -1,6 +1,6 @@
 /* app.js — The app loop. What changed since last paint, the per-second light update, and load(),
    which pulls every shown frame and re-analyses it.
-   part of VL */
+   part of Odysseus */
 
 /* ---------- boot ---------- */
 // A fingerprint of everything that would change the table's wording.

@@ -1,6 +1,6 @@
 /* verdict.js — The verdict engine. Turns the panel's own numbers into a graded read on a trade,
    and the offline reader Logan falls back to when there is no API key.
-   part of VL */
+   part of Odysseus */
 
 /* ---------- Logan, offline ----------
    A deterministic reader. Not a language model: it walks the same numbers the
@@ -279,7 +279,7 @@ function offlineRead(symArg, text){
 function briefing(){
   const c = loganContext();
   const L = [];
-  L.push('VL terminal snapshot — '+c.symbol+' ('+c.name+') on '+c.venue);
+  L.push('Odysseus terminal snapshot — '+c.symbol+' ('+c.name+') on '+c.venue);
   L.push('Price '+(c.price!=null?fmtUsd(c.price):'n/a')+', composite '+c.composite+' (weighted -100..100, 1M=5 down to 1H=1)');
   L.push('');
   L.push('Frames (stochastic 5,3,3):');

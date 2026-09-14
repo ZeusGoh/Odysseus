@@ -1,6 +1,6 @@
 /* ui-symbols.js — Symbol search and pickers. The curated buttons are shortcuts; real search pulls the
    exchange's own universe.
-   part of VL */
+   part of Odysseus */
 
 /* ---------- searchable symbol universe ---------- */
 /*  The curated buttons are just shortcuts. Real search pulls the exchange's

@@ -1,6 +1,6 @@
 /* logan.js — Logan — the in-app analyst. Tool schemas, the bounded tool loop, the API call,
    and the chat UI. Reads the app's own numbers; cannot trade and cannot send messages.
-   part of VL */
+   part of Odysseus */
 
 /* ---------- Logan ---------- */
 const LG_KEY = 'vl.logan.v1';
@@ -65,7 +65,7 @@ function loganContext(symArg){
   };
 }
 
-const LOGAN_SYSTEM = `You are Logan, the analyst built into VL, a stochastic terminal for crypto perpetuals.
+const LOGAN_SYSTEM = `You are Logan, the analyst built into Odysseus, a stochastic terminal for crypto perpetuals.
 
 HOW THE INDICATOR WORKS (this is the app's exact logic):
 - Stochastic 5,3,3 on each of five frames: 1M, 1W, 1D, 4H, 1H.

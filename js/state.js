@@ -1,6 +1,6 @@
 /* state.js — Shared state. Everything keyed by symbol, then by timeframe key, plus analyse(),
    which turns freshly pulled candles into stochastic series, cross states and divergences.
-   part of VL */
+   part of Odysseus */
 
 /* ---------- state ---------- */
 // everything keyed first by symbol code, then by timeframe key

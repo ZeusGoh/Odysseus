@@ -1,6 +1,6 @@
 /* ui-terminal.js — Terminal view. The frame matrix, the BTC strip, the stance block, the live backtest
    badge on every cross, and the render loop that keeps them honest.
-   part of VL */
+   part of Odysseus */
 
 // display shorthand — desk nomenclature, not new logic
 const ZONE_SHORT = {oversold:'OS', middle:'Mid', overbought:'OB'};

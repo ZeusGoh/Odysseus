@@ -1,5 +1,5 @@
 /* indicators.test.js — the maths, on synthetic data with known answers.
-   part of VL */
+   part of Odysseus */
 const {load} = require('./harness');
 const app = load(['indicators.js']);
 const {sma, stochastic, zoneOf, crossQuality, crossPoints, crossState, ema, emaRead, divergences, sideOf} = app;

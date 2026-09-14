@@ -1,5 +1,5 @@
 /* charts.js — Charts. Lightweight Charts when it loads, a hand-drawn canvas fallback when it does not.
-   part of VL */
+   part of Odysseus */
 
 /* ---------- chart picker ---------- */
 function buildPicker(){

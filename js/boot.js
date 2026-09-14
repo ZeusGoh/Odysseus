@@ -91,16 +91,21 @@ $('lg-text').addEventListener('input', e=>{
   e.target.style.height='auto';
   e.target.style.height = Math.min(130, e.target.scrollHeight)+'px';
 });
-$('lg-clear').onclick = ()=>{ lgChat = []; lgApi = []; lgRender(); };
+$('lg-clear').onclick = ()=>{ lgForgetChat(); lgRender(); };
 $('lg-setup').onclick = ()=>{ const b=$('lg-settings'); b.hidden = !b.hidden; };
 $('lg-save').onclick = ()=>{
   const chosen = document.querySelector('#lg-provider button[aria-pressed="true"]');
+  const wasProvider = lgCfg.provider;
   lgCfg.provider = (chosen && chosen.dataset.provider) || 'anthropic';
   lgCfg.anthropicKey = $('lg-key').value.trim();
   lgCfg.anthropicModel = $('lg-model').value.trim();
   lgCfg.geminiKey = $('lg-gkey').value.trim();
   lgCfg.geminiModel = $('lg-gmodel').value.trim();
   const ok = lgSaveCfg();
+  /*  The two providers' transcripts are not interchangeable, so switching
+      backends drops the replayable context while leaving the visible chat
+      alone. Logan starts fresh; the conversation stays on screen.          */
+  if(lgCfg.provider !== wasProvider){ lgApi = []; lgSaveChat(); }
   $('lg-keynote').textContent = ok
     ? 'Saved in this browser. Sent only to '+lgProviderHost()+'.'
     : 'This preview cannot save settings, so the key lasts only for this session.';
@@ -122,6 +127,55 @@ $('lg-brief').onclick = async ()=>{
 };
 $('nav-terminal').onclick = ()=> setView('terminal');
 $('nav-watch').onclick    = ()=> setView('watch');
+
+/* ---------- cloud ---------- */
+$('nav-cloud').onclick = ()=> setView('cloud');
+$('cl-saveconfig').onclick = ()=>{
+  const note = $('cl-confignote');
+  try{
+    cloudCfg.fb = cloudParseConfig($('cl-config').value);
+    cloudSaveCfg();
+    note.textContent = 'Saved. Sign in below — the first sign-in on a machine pulls everything down.';
+    cloudRender();
+  }catch(e){
+    note.textContent = 'Could not read that: '+e.message+
+      '. Paste the whole firebaseConfig block, braces included.';
+  }
+};
+async function clAuth(makeAccount){
+  const note = $('cl-last');
+  const email = $('cl-email').value.trim(), pass = $('cl-pass').value;
+  if(!cloudConfigured()){ note.textContent = 'Connect a Firebase project first.'; return; }
+  if(!email || !pass){ note.textContent = 'Email and password are both needed.'; return; }
+  note.textContent = makeAccount ? 'Creating account…' : 'Signing in…';
+  try{
+    await cloudSignIn(email, pass, makeAccount);
+    $('cl-pass').value = '';
+    cloudRender();
+    note.textContent = 'Signed in. Syncing…';
+    await cloudSyncAndRefresh();
+    cloudRender();
+  }catch(e){
+    note.textContent = (makeAccount ? 'Could not create that account: ' : 'Could not sign in: ')+e.message;
+    cloudRender();
+  }
+}
+$('cl-signin').onclick = ()=> clAuth(false);
+$('cl-signup').onclick = ()=> clAuth(true);
+$('cl-signout').onclick = async ()=>{
+  await cloudSignOut();
+  cloudRender();
+  $('cl-last').textContent = 'Signed out. This machine keeps its own copy of everything.';
+};
+$('cl-sync').onclick = ()=>{
+  if(!cloudOn()){ $('cl-last').textContent = 'Sign in first.'; return; }
+  cloudSyncAndRefresh();
+};
+$('cl-secrets').onchange = e=>{
+  cloudCfg.syncSecrets = e.target.checked;
+  cloudSaveCfg();
+  cloudRender();
+};
 
 const wInput = $('wsearch');
 wInput.addEventListener('focus', ()=> loadUniverse());
@@ -173,6 +227,7 @@ watch = store.read();
 updateWatchCount();
 renderTrackBtn();
 lgInit();
+cloudInit();
 buildScanControls();
 buildHistHeads();
 buildAlertControls();

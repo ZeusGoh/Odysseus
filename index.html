@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="css/charts.css">
 <link rel="stylesheet" href="css/news.css">
 <link rel="stylesheet" href="css/journal.css">
+<link rel="stylesheet" href="css/cloud.css">
 </head>
 <body>
 
@@ -31,6 +32,7 @@
     <button id="nav-hist" aria-pressed="false">History</button>
     <button id="nav-journal" aria-pressed="false">Journal <span class="cnt" id="journal-count">0</span></button>
     <button id="nav-logan" aria-pressed="false">Logan</button>
+    <button id="nav-cloud" aria-pressed="false">Cloud <span class="cnt" id="cloud-dot">local</span></button>
   </nav>
   <div class="symwrap">
     <div class="symtabs" id="symlist"></div>
@@ -437,6 +439,66 @@
     </section>
   </section>
 
+  <section id="cloudview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">Cloud</h1>
+        <p class="wsub">Optional. Keeps your journal, watchlist, alerts and Logan's memory on every
+          machine you sign in from. Leave it alone and the app stays entirely on this computer.</p>
+      </div>
+      <div class="lgtools">
+        <span class="lgmode" id="cl-mode"></span>
+        <button id="cl-sync" class="ghost">Sync now</button>
+      </div>
+    </div>
+
+    <div class="mod">
+      <header><h2>Account</h2><p id="cl-who"></p></header>
+      <div class="lgset">
+        <div id="cl-authrow" class="clrow">
+          <label class="lgfieldgrp">Email
+            <input type="email" id="cl-email" placeholder="you@example.com" autocomplete="username">
+          </label>
+          <label class="lgfieldgrp">Password
+            <input type="password" id="cl-pass" placeholder="at least 6 characters" autocomplete="current-password">
+          </label>
+          <button id="cl-signin">Sign in</button>
+          <button id="cl-signup" class="ghost">Create account</button>
+        </div>
+        <div id="cl-signedrow" class="clrow" hidden>
+          <button id="cl-signout" class="ghost">Sign out</button>
+        </div>
+        <p class="lgnote" id="cl-last"></p>
+      </div>
+    </div>
+
+    <div class="mod">
+      <header><h2>What syncs</h2><p>caches stay local — they rebuild themselves in seconds</p></header>
+      <div class="lgset">
+        <ul class="clkeys" id="cl-keys"></ul>
+        <label class="clcheck">
+          <input type="checkbox" id="cl-secrets">
+          <span>Also sync API keys and the Telegram token</span>
+        </label>
+        <p class="lgnote">Your Firebase rules keep these readable only by your own account, but a key
+          that can spend money is a different thing to put on a server than a trade journal. Leave this
+          off and you paste your keys once per machine, which is a small price for keeping them here.</p>
+      </div>
+    </div>
+
+    <div class="mod">
+      <header><h2>Firebase project</h2><p>one-time setup, then never again</p></header>
+      <div class="lgset">
+        <label class="lgfieldgrp clwide">Config
+          <textarea id="cl-config" rows="9" spellcheck="false"
+            placeholder="Paste the firebaseConfig block from your Firebase console here"></textarea>
+        </label>
+        <button id="cl-saveconfig">Save config</button>
+        <p class="lgnote" id="cl-confignote"></p>
+      </div>
+    </div>
+  </section>
+
   <details class="help">
     <summary>How these signals are read</summary>
     <p><b>Confirmed versus potential.</b> Confirmed means the cross printed on a bar that has already closed, so it
@@ -488,6 +550,7 @@
 <!-- Load order matters: definitions first, boot.js last. -->
 <script src="js/indicators.js"></script>
 <script src="js/market-data.js"></script>
+<script src="js/cloud.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/state.js"></script>
 <script src="js/backtest.js"></script>

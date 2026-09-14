@@ -3,7 +3,7 @@
    engine's own grades rather than something journal.js invented.
    part of Odysseus */
 const {load} = require('./harness');
-const app = load(['indicators.js','market-data.js','storage.js','state.js','backtest.js',
+const app = load(['cloud.js','indicators.js','market-data.js','storage.js','state.js','backtest.js',
                    'btc-reference.js','logan.js','verdict.js','journal.js']);
 const {jR, jPct, jSuggestSize, jRiskUnit, jStats, jGradeStats, jAdd, jClose,
        jGroupStats, jHourBlockOf, jWeekdayOf, jMonthOf, jZoneAt, zoneOf,

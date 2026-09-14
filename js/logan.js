@@ -26,7 +26,7 @@ const lgCfg = (()=>{
 })();
 
 function lgSaveCfg(){
-  try{ localStorage.setItem(LG_KEY, JSON.stringify(lgCfg)); return true; }catch(e){ return false; }
+  return vlPut(LG_KEY, JSON.stringify(lgCfg));
 }
 
 function lgActiveKey(){ return lgCfg.provider === 'gemini' ? lgCfg.geminiKey : lgCfg.anthropicKey; }
@@ -38,6 +38,75 @@ function lgActiveModel(){
 function lgHasKey(){ return !!lgActiveKey(); }
 function lgProviderLabel(){ return lgCfg.provider === 'gemini' ? 'Gemini' : 'Claude'; }
 function lgProviderHost(){ return lgCfg.provider === 'gemini' ? 'generativelanguage.googleapis.com' : 'api.anthropic.com'; }
+
+/* ---------- Logan's memory ----------
+   The visible chat and the API-shaped transcript used to live only in memory,
+   so every reload wiped them and Logan met you fresh each time. Both are kept
+   on disk now, under their own key rather than inside lgCfg — the config is a
+   handful of bytes read on every call, and a long transcript has no business
+   riding along with it.
+
+   Two things make this less trivial than it looks. The transcript grows without
+   bound, so old exchanges are dropped off the front once it gets heavy; and the
+   two providers shape their transcripts differently, so one built under Claude
+   cannot be replayed to Gemini. The cut is always made at an exchange boundary,
+   never mid-tool-loop, because a tool_result with no matching tool_use is a hard
+   API error.                                                                  */
+const LG_CHAT_KEY = 'vl.logan.chat.v1';
+const LG_CHAT_MAX = 180000;      // ~180KB of transcript kept; older exchanges fall off the front
+
+// an lgApi entry that opens a new exchange: a real user message, not a
+// tool_result / functionResponse carrier (which also uses role 'user')
+function lgIsUserTurn(m){
+  if(!m || m.role !== 'user') return false;
+  if(typeof m.content === 'string') return true;                              // Anthropic user text
+  if(Array.isArray(m.parts)) return m.parts.some(p => typeof p.text === 'string');  // Gemini user text
+  return false;
+}
+
+// drop the oldest complete exchange from both transcripts at once. Returns
+// false when only one exchange is left, since half an exchange is unusable.
+function lgDropOldestExchange(){
+  const a0 = lgApi.findIndex(lgIsUserTurn);
+  const a1 = lgApi.findIndex((m,i)=> i > a0 && lgIsUserTurn(m));
+  const c0 = lgChat.findIndex(m => m.role === 'user');
+  const c1 = lgChat.findIndex((m,i)=> i > c0 && m.role === 'user');
+  if(a1 < 0 || c1 < 0) return false;
+  lgApi  = lgApi.slice(a1);
+  lgChat = lgChat.slice(c1);
+  return true;
+}
+
+function lgSaveChat(){
+  try{
+    const pack = ()=> JSON.stringify({v:1, provider:lgCfg.provider, at:Date.now(),
+                                      chat:lgChat, api:lgApi});
+    let blob = pack();
+    while(blob.length > LG_CHAT_MAX && lgDropOldestExchange()) blob = pack();
+    return vlPut(LG_CHAT_KEY, blob);
+  }catch(e){ return false; }
+}
+
+function lgLoadChat(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(LG_CHAT_KEY) || 'null');
+    if(!raw || !Array.isArray(raw.chat) || !Array.isArray(raw.api)) return;
+    lgChat = raw.chat;
+    /*  A transcript recorded under the other provider is kept on screen but not
+        replayed — the wire formats do not interchange, and sending Claude's
+        blocks to Gemini fails outright. Logan sees a fresh context; you still
+        see what was said.                                                     */
+    lgApi = (raw.provider === lgCfg.provider) ? raw.api : [];
+  }catch(e){}
+}
+
+/*  Cleared by writing an empty transcript rather than deleting the key. A
+    deleted key looks like "nothing to say" to the sync, which would let the
+    other machine's copy flow back on the next pull and undo the clear.      */
+function lgForgetChat(){
+  lgChat = []; lgApi = [];
+  lgSaveChat();
+}
 
 /*  Logan is handed the numbers the app has already computed. He is not asked to
     read a chart or recall prices — everything he cites comes from this object,
@@ -134,6 +203,7 @@ HOW TO ANSWER:
 
 function lgPush(role, content, cls){
   lgChat.push({role, content});
+  lgSaveChat();
   lgRender(cls);
 }
 
@@ -513,6 +583,7 @@ async function lgSend(text){
 
   const gemini = lgCfg.provider === 'gemini';
   lgApi.push(gemini ? {role:'user', parts:[{text}]} : {role:'user', content:text});
+  lgSaveChat();   // keep the two transcripts in step; lgPush above only saw the chat side
   lgBusy = true; $('lg-send').disabled = true; lgRender();
 
   try{
@@ -583,6 +654,7 @@ async function lgSend(text){
     let hint = lgProviderLabel()+' could not reach the API: '+e.message;
     if(isFileOrigin()) hint += '\n\n'+FILE_HINT;
     lgChat.push({role:'assistant', content:hint, error:true});
+    lgSaveChat();
     lgRender();
   }
 }
@@ -632,6 +704,7 @@ function lgShowProviderFields(p){
 }
 
 function lgInit(){
+  lgLoadChat();
   $('lg-key').value = lgCfg.anthropicKey || '';
   $('lg-model').value = lgCfg.anthropicModel || '';
   $('lg-gkey').value = lgCfg.geminiKey || '';

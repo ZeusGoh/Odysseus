@@ -26,7 +26,7 @@ const newsCfg = Object.assign({
 }, (()=>{ try{ return JSON.parse(localStorage.getItem(NEWS_KEY)||'{}'); }catch(e){ return {}; } })());
 
 function newsSaveCfg(){
-  try{ localStorage.setItem(NEWS_KEY, JSON.stringify(newsCfg)); }catch(e){}
+  vlPut(NEWS_KEY, JSON.stringify(newsCfg));
 }
 
 /*  Answers are cached per coin per hour per window — clicking the same row

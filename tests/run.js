@@ -13,6 +13,13 @@ global.check = (label, got, want) => {
          console.log('  FAIL ' + label); }
 };
 global.ok = (label, cond) => global.check(label, !!cond, true);
+// a function that must reject its input — "returned something odd" and "refused"
+// are different outcomes, and only one of them is the contract
+global.throws = (label, fn) => {
+  let threw = false;
+  try{ fn(); }catch(e){ threw = true; }
+  global.check(label, threw, true);
+};
 // floating point: 7 and 7.000000000000001 are the same answer
 global.near = (label, got, want, tol) => {
   const ok = typeof got === 'number' && Math.abs(got - want) <= (tol === undefined ? 1e-9 : tol);

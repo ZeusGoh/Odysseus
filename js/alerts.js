@@ -26,12 +26,12 @@ let fired = (()=>{ try{ return new Set(JSON.parse(localStorage.getItem(FIRED_KEY
 let alertBusy = false, alertLog = [];
 
 function saveAlertCfg(){
-  try{ localStorage.setItem(ALERT_KEY, JSON.stringify(alertCfg)); return true; }catch(e){ return false; }
+  return vlPut(ALERT_KEY, JSON.stringify(alertCfg));
 }
 function rememberFired(key){
   fired.add(key);
   if(fired.size > 400) fired = new Set([...fired].slice(-300));   // keep it bounded
-  try{ localStorage.setItem(FIRED_KEY, JSON.stringify([...fired])); }catch(e){}
+  vlPut(FIRED_KEY, JSON.stringify([...fired]));
 }
 
 async function sendTelegram(text){

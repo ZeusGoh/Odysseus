@@ -16,8 +16,7 @@ const store = {
   },
   write(list){
     memoryFallback = list;
-    try{ localStorage.setItem(KEY, JSON.stringify(list)); return true; }
-    catch(e){ return false; }
+    return vlPut(KEY, JSON.stringify(list));
   },
   durable(){
     try{ localStorage.setItem(KEY+'.probe','1'); localStorage.removeItem(KEY+'.probe'); return true; }

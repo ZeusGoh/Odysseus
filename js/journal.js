@@ -14,8 +14,8 @@ let journal = (()=>{ try{ return JSON.parse(localStorage.getItem(JOURNAL_KEY)||'
 const jCfg = Object.assign({account:1000, riskPct:1},
   (()=>{ try{ return JSON.parse(localStorage.getItem(JCFG_KEY)||'{}'); }catch(e){ return {}; } })());
 
-function jSave(){ try{ localStorage.setItem(JOURNAL_KEY, JSON.stringify(journal)); return true; }catch(e){ return false; } }
-function jSaveCfg(){ try{ localStorage.setItem(JCFG_KEY, JSON.stringify(jCfg)); return true; }catch(e){ return false; } }
+function jSave(){ return vlPut(JOURNAL_KEY, JSON.stringify(journal)); }
+function jSaveCfg(){ return vlPut(JCFG_KEY, JSON.stringify(jCfg)); }
 
 /* ---------- maths ----------
    Risk unit is the distance from entry to invalidation — the same distance

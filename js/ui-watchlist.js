@@ -12,6 +12,7 @@ function setView(next){
   $('alertsview').hidden   = next!=='alerts';
   $('newsview').hidden     = next!=='news';
   $('journalview').hidden  = next!=='journal';
+  $('cloudview').hidden    = next!=='cloud';
   $('scanview').hidden     = next!=='scan';
   $('nav-terminal').setAttribute('aria-pressed', next==='terminal');
   $('nav-watch').setAttribute('aria-pressed', next==='watch');
@@ -21,9 +22,11 @@ function setView(next){
   $('nav-alerts').setAttribute('aria-pressed', next==='alerts');
   $('nav-news').setAttribute('aria-pressed', next==='news');
   $('nav-journal').setAttribute('aria-pressed', next==='journal');
+  $('nav-cloud').setAttribute('aria-pressed', next==='cloud');
   $('nav-scan').setAttribute('aria-pressed', next==='scan');
   if(next==='watch'){ renderWatch(); scanWatch(); }
   else if(next==='logan'){ lgRender(); $('lg-text').focus(); }
+  else if(next==='cloud'){ cloudRender(); }
   else if(next==='scan'){ buildScanControls(); renderScan(scanRows.length); }
   else if(next==='hist'){ buildHistScope(); buildHistory(); }
   else if(next==='alerts'){ buildAlertControls(); renderAlertLog(); }

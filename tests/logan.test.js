@@ -3,7 +3,7 @@
    and Gemini both) need a real browser and a real key — not exercised here.
    part of Odysseus */
 const {load} = require('./harness');
-const app = load(['logan.js']);
+const app = load(['cloud.js', 'logan.js']);   // logan persists through cloud.js's vlPut
 const {toGeminiSchema, LG_TOOLS, GEMINI_TOOLS, lgToolLabel} = app;
 
 suite('toGeminiSchema — type casing');
@@ -89,6 +89,7 @@ suite('lgCfg — old single-provider saves migrate forward, not sideways');
     return c;
   })());
   vm.runInContext(seed, ctx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'cloud.js'), 'utf8'), ctx, {filename:'cloud.js'});
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'logan.js'), 'utf8'), ctx, {filename:'logan.js'});
   // top-level const/let live in the lexical scope, not on the context object
   // (see harness.js's own note on this) — expose the two names this block needs

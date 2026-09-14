@@ -9,3 +9,8 @@ Thumbs.db
 
 # node, if tooling ever needs it
 node_modules/
+
+# credentials and personal notes — never commit these
+login.txt
+.env
+*.key

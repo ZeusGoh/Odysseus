@@ -33,7 +33,7 @@
         grid-template-columns:minmax(0,1.1fr) 50px 74px 74px 56px 80px 64px 64px 80px 100px;
         gap:8px;align-items:center;padding:10px 16px}
   .jhead{color:var(--mute);font-size:10px;letter-spacing:.04em;
-        background:#0B0E13;border-bottom:1px solid var(--edge)}
+        background:var(--panel-2);border-bottom:1px solid var(--edge)}
   .jhead span:nth-child(n+3){text-align:right}
   .jrow{border-bottom:1px solid var(--edge);font-size:11.5px}
   .jrow:last-child{border-bottom:0}
@@ -52,8 +52,8 @@
   .jactions button{font-size:10.5px;color:var(--mute);padding:3px 8px;border-radius:4px;
         box-shadow:inset 0 0 0 1px var(--edge)}
   .jactions button:hover{color:var(--ink);background:var(--raise)}
-  .jactions .jdel{color:#39414E;font-size:14px;padding:2px 5px;box-shadow:none;line-height:1}
-  .jactions .jdel:hover{color:var(--down);background:rgba(240,97,109,.10)}
+  .jactions .jdel{color:var(--dim);font-size:14px;padding:2px 5px;box-shadow:none;line-height:1}
+  .jactions .jdel:hover{color:var(--down);background:rgba(242,54,69,.10)}
 
   /* ---- inline close editor (replaces a native prompt()) ---- */
   .jclosewrap{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -62,8 +62,8 @@
   .jexittime{padding:6px 9px;font-size:11px;color:var(--ink);color-scheme:dark;
         background:var(--void);border:1px solid var(--edge);border-radius:5px}
   .jconfirm{font-size:10.5px;color:var(--up);padding:5px 10px;border-radius:4px;
-        box-shadow:inset 0 0 0 1px rgba(62,207,142,.35)}
-  .jconfirm:hover{background:rgba(62,207,142,.10)}
+        box-shadow:inset 0 0 0 1px rgba(8,153,129,.35)}
+  .jconfirm:hover{background:rgba(8,153,129,.10)}
 
   @media (max-width:980px){
     .jhead{display:none}
@@ -76,7 +76,7 @@
   .jgradehead,.jgraderow{display:grid;grid-template-columns:minmax(0,1fr) 80px 90px 80px;
         gap:10px;align-items:center;padding:9px 16px}
   .jgradehead{color:var(--mute);font-size:10px;letter-spacing:.04em;
-        background:#0B0E13;border-bottom:1px solid var(--edge)}
+        background:var(--panel-2);border-bottom:1px solid var(--edge)}
   .jgradehead span:nth-child(n+2){text-align:right}
   .jgraderow{border-bottom:1px solid var(--edge);font-size:11.5px}
   .jgraderow:last-child{border-bottom:0}
@@ -85,7 +85,7 @@
   .jpatterns{display:flex;flex-wrap:wrap;gap:14px;padding:14px 16px}
   .jpatterncard{flex:1 1 230px;border:1px solid var(--edge);border-radius:6px;overflow:hidden}
   .jpatterntitle{padding:8px 12px;font-size:10.5px;font-weight:600;color:var(--mute);
-        letter-spacing:.02em;background:#0B0E13;border-bottom:1px solid var(--edge)}
+        letter-spacing:.02em;background:var(--panel-2);border-bottom:1px solid var(--edge)}
   .jpatterncard .jgradehead,.jpatterncard .jgraderow{
         grid-template-columns:minmax(0,1fr) 34px 52px 54px;gap:6px;padding:7px 10px;font-size:10.5px}
   .jpatterncard .jgraderow{font-size:11px}

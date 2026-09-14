@@ -33,9 +33,12 @@ function disposePanes(){
   Object.keys(panes).forEach(k=> delete panes[k]);
 }
 
+/* TradingView's own dark-theme palette — up/down candles, grid and axis
+   borders match tradingview.com exactly, so a chart lifted out of this app
+   and one opened there read as the same instrument. */
 const CH = {
-  up:'#3ECF8E', down:'#F0616D', pend:'#F5A524', mute:'#6E7889',
-  grid:'#12161D', edge:'#1B212B', text:'#6E7889',
+  up:'#089981', down:'#F23645', pend:'#F5A524', mute:'#7C879B',
+  grid:'#151B26', edge:'#232B38', text:'#7C879B',
   font:'"Geist","Inter Tight",system-ui,sans-serif'
 };
 
@@ -62,8 +65,8 @@ function buildPane(tf, el, H){
                       scaleMargins:{top:STOCH_TOP, bottom:STOCH_BOTTOM} },
     timeScale:{ borderColor:CH.edge, timeVisible:true, secondsVisible:false, rightOffset:4 },
     crosshair:{ mode:1,
-      vertLine:{color:'#6E7BFF', width:1, style:2, labelBackgroundColor:'#222836'},
-      horzLine:{color:'#6E7BFF', width:1, style:2, labelBackgroundColor:'#222836'} },
+      vertLine:{color:'#6E7BFF', width:1, style:2, labelBackgroundColor:'#1A2130'},
+      horzLine:{color:'#6E7BFF', width:1, style:2, labelBackgroundColor:'#1A2130'} },
     handleScale:{ axisPressedMouseMove:{time:true, price:false} }
   });
 

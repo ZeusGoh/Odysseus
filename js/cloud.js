@@ -35,8 +35,31 @@ const CLOUD_KEY      = 'vl.cloud.v1';        // firebase config + preferences
 const CLOUD_META_KEY = 'vl.cloud.meta.v1';   // per-key local/synced timestamps
 const FB_SDK = '12.19.0';                    // pinned; an SDK that moves under you is a bug you cannot reproduce
 
+/*  The Firebase project this app ships pointed at.
+
+    This is not a secret and is not treated as one — Google publishes these in
+    the console for you to paste into client code, and every web app that uses
+    Firebase ships one. It identifies the project; it grants nothing. What
+    actually guards the data is the Firestore rule that a document under
+    users/<uid> is readable and writable only by the signed-in account whose
+    uid matches, plus the password on that account.
+
+    Baked in so a new machine needs a sign-in and nothing else. Anything saved
+    in the Cloud panel overrides it, for pointing at a different project.     */
+const FB_DEFAULT = {
+  apiKey: 'AIzaSyAdFFJy2rG2mfc2dkdCU8KNjpvfz4t2UK4',
+  authDomain: 'odysseus-6ad9d.firebaseapp.com',
+  projectId: 'odysseus-6ad9d',
+  storageBucket: 'odysseus-6ad9d.firebasestorage.app',
+  messagingSenderId: '807447206943',
+  appId: '1:807447206943:web:09c3b6acf87ae97a6e092a'
+};
+
 const cloudCfg = (()=>{
-  try{ return JSON.parse(localStorage.getItem(CLOUD_KEY)||'{}'); }catch(e){ return {}; }
+  let c;
+  try{ c = JSON.parse(localStorage.getItem(CLOUD_KEY)||'{}'); }catch(e){ c = {}; }
+  if(!c.fb) c.fb = FB_DEFAULT;
+  return c;
 })();
 
 /*  local[key]  — when this browser last wrote that key
@@ -313,13 +336,38 @@ function cloudInit(){
   if(box && cloudCfg.fb) box.value = JSON.stringify(cloudCfg.fb, null, 2);
   const em = $('cl-email');
   if(em) em.value = cloudCfg.email || '';
+  const note = $('cl-confignote');
+  if(note) note.textContent = (cloudCfg.fb === FB_DEFAULT)
+    ? 'Already pointed at the odysseus project — nothing to do here. Sign in above. '+
+      'Only change this to use a different Firebase project.'
+    : 'Using a config saved in this browser rather than the built-in one.';
   cloudRender();
 
-  if(!cloudConfigured()) return;
+  /*  Now that a project ships with the app, "configured" is true for everyone,
+      so it can no longer be the thing that decides whether to touch the
+      network. A signed-out machine has no session to restore and therefore no
+      reason to fetch the SDK at all — it stays exactly as offline as it was
+      before any of this existed, until someone signs in.                    */
+  if(!cloudConfigured() || !cloudHasSession()) return;
   cloudResume().then(u=>{
     cloudRender();
     if(u) cloudSyncAndRefresh();
   });
+}
+
+/*  Firebase Auth parks its persisted session in localStorage under a key built
+    from the api key. Reading it directly is the only way to ask "is anyone
+    signed in here?" without first downloading the SDK that would answer it.  */
+function cloudHasSession(){
+  try{
+    const key = cloudCfg.fb && cloudCfg.fb.apiKey;
+    if(key && localStorage.getItem('firebase:authUser:'+key+':[DEFAULT]')) return true;
+    for(let i = 0; i < localStorage.length; i++){
+      const k = localStorage.key(i);
+      if(k && k.indexOf('firebase:authUser:') === 0) return true;
+    }
+  }catch(e){}
+  return false;
 }
 
 /*  Firebase hands you a JS object literal in the console, not JSON, so the

@@ -4,7 +4,7 @@
    part of Odysseus */
 const {load} = require('./harness');
 const app = load(['cloud.js', 'logan.js']);   // logan persists through cloud.js's vlPut
-const {toGeminiSchema, LG_TOOLS, GEMINI_TOOLS, lgToolLabel} = app;
+const {toGeminiSchema, LG_TOOLS, GEMINI_TOOLS, lgToolLabel, lgErrorHint, lgApiError} = app;
 
 suite('toGeminiSchema — type casing');
 check('object becomes OBJECT', toGeminiSchema({type:'object', properties:{}}).type, 'OBJECT');
@@ -99,4 +99,39 @@ suite('lgCfg — old single-provider saves migrate forward, not sideways');
   check('the old model lands as anthropicModel', ctx.lgCfg.anthropicModel, 'claude-sonnet-5');
   check('a migrated config defaults to the anthropic provider', ctx.lgCfg.provider, 'anthropic');
   check('lgActiveKey reads the migrated field', ctx.lgActiveKey(), 'sk-ant-old');
+}
+
+suite('lgErrorHint — a refusal from the API is not a connection problem');
+{
+  // the real message Gemini returns when the free tier's window is spent
+  const quota = lgApiError({error:{message:
+    'You exceeded your current quota, please check your plan and billing details. '+
+    '* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, '+
+    'limit: 20, model: gemini-3.6-flash Please retry in 52.044789132s.'}}, 429);
+  const out = lgErrorHint(quota);
+  ok('a quota refusal is named as a rate limit, not a failure to connect',
+     /rate limited/i.test(out));
+  ok('it says nothing is broken, because nothing is',
+     /nothing is broken/i.test(out));
+  ok('the retry delay is rounded into something readable', out.includes('53 seconds'));
+  ok('it does not tell the user to go and serve the folder',
+     !/python3 -m http\.server/.test(out));
+}
+{
+  // an API that answered with a real complaint — a bad key, say
+  const refused = lgApiError({error:{message:'API key not valid. Please pass a valid API key.'}}, 400);
+  const out = lgErrorHint(refused);
+  ok('the API\'s own wording is passed through', out.includes('API key not valid'));
+  ok('a reached API is never blamed on the page origin',
+     !/python3 -m http\.server/.test(out));
+  check('an answered error is marked as having reached the API', refused.reached, true);
+  check('the status is kept for the caller to branch on', refused.status, 400);
+}
+{
+  // a call that never landed: fetch itself threw, so there is no status
+  const dead = new TypeError('Failed to fetch');
+  const out = lgErrorHint(dead);
+  ok('a genuine connection failure still reports the underlying message',
+     out.includes('Failed to fetch'));
+  check('nothing marks it as reached', dead.reached, undefined);
 }

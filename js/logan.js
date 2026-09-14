@@ -539,7 +539,7 @@ async function lgCallAnthropic(){
     body: JSON.stringify(body)
   });
   const j = await r.json();
-  if(!r.ok) throw new Error((j && j.error && j.error.message) || ('request failed with '+r.status));
+  if(!r.ok) throw lgApiError(j, r.status);
   return j;
 }
 
@@ -560,8 +560,43 @@ async function lgCallGemini(){
     method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
   });
   const j = await r.json();
-  if(!r.ok) throw new Error((j && j.error && j.error.message) || ('request failed with '+r.status));
+  if(!r.ok) throw lgApiError(j, r.status);
   return j;
+}
+
+/*  An error the API actually answered with, as opposed to a call that never
+    landed at all. The distinction decides what we can honestly say afterwards:
+    a quota refusal is proof the request arrived and was understood, so blaming
+    the page's origin at that point sends someone chasing a problem they do not
+    have.                                                                     */
+/*  What to actually tell someone when a turn fails. Three different things get
+    reported as one "could not reach the API" otherwise, and only one of them
+    is worth acting on the way the old message implied.                       */
+function lgErrorHint(e){
+  const msg = e.message || String(e);
+
+  // a free-tier ceiling, not a fault — it clears on its own
+  if(e.status === 429 || /quota|rate limit|RESOURCE_EXHAUSTED/i.test(msg)){
+    const wait = /retry in ([\d.]+)\s*s/i.exec(msg);
+    return lgProviderLabel()+' is rate limited: you have used up the free tier\'s allowance for '+
+      'this stretch of time. Nothing is broken and nothing is lost — the conversation is still here.'+
+      (wait ? ' Try again in about '+Math.ceil(parseFloat(wait[1]))+' seconds.'
+            : ' Wait a minute and ask again.');
+  }
+
+  let hint = lgProviderLabel()+' could not reach the API: '+msg;
+  /*  Only a call that never landed can be an origin problem. When the API
+      answered — even to refuse — the origin was evidently fine, and this hint
+      would be a red herring.                                                 */
+  if(isFileOrigin() && !e.reached) hint += '\n\n'+FILE_HINT;
+  return hint;
+}
+
+function lgApiError(j, status){
+  const e = new Error((j && j.error && j.error.message) || ('request failed with '+status));
+  e.reached = true;
+  e.status = status;
+  return e;
 }
 
 // a runaway tool result would blow the context; truncating beats failing.
@@ -651,9 +686,7 @@ async function lgSend(text){
     lgPush('assistant', 'That used up my tool budget without landing an answer. Ask again more narrowly.');
   }catch(e){
     lgBusy = false; $('lg-send').disabled = false;
-    let hint = lgProviderLabel()+' could not reach the API: '+e.message;
-    if(isFileOrigin()) hint += '\n\n'+FILE_HINT;
-    lgChat.push({role:'assistant', content:hint, error:true});
+    lgChat.push({role:'assistant', content: lgErrorHint(e), error:true});
     lgSaveChat();
     lgRender();
   }

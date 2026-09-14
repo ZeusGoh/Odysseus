@@ -97,7 +97,7 @@ function alertEvents(code, key){
 function alertText(code, key, ev){
   const meta = symbolOf(code);
   const arrow = ev.dir==='bull' ? 'LONG' : 'SHORT';
-  const head = 'Odysseus · '+meta.sym+' '+key+' '+arrow+' — '+
+  const head = 'ODYSSEUS · '+meta.sym+' '+key+' '+arrow+' — '+
     (ev.kind==='confirmed' ? 'cross confirmed'
      : ev.kind==='unsettled' ? 'cross on the live bar'
      : ev.kind==='nearing' ? '%K turning into %D'

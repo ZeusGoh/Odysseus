@@ -304,6 +304,41 @@ const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url=';
 const BYBIT_ANN = 'https://api.bybit.com/v5/announcements/index?locale=en-US&limit=50';
 const BINANCE_ANN = 'https://www.binance.com/bapi/composite/v1/public/cms/article/list/query?type=1&catalogId=';
 
+/*  ---- per-coin search, on top of the shared feed ---------------------------
+    The five desks above are a front-page sweep — fine for BTC, useless for a
+    mid-cap that just tripled (verified live: LSK +292%, STEEM +49%, FLOCK +35%,
+    POWR +31% on the board at once, zero matches between them in that pool).
+    Google News' own search RSS actually indexes the smaller crypto trade press
+    that covers exactly these moves, and it needs no key — same rss2json proxy
+    already in use converts it to JSON and sidesteps the CORS problem. Run once
+    per coin, when its panel is opened, and cached briefly so reopening it does
+    not cost a second request.                                                */
+const nvCoinFeedCache = {};   // sym -> {items, at}
+
+async function nvCoinHeadlines(sym, name){
+  const cached = nvCoinFeedCache[sym];
+  if(cached && Date.now()-cached.at < 6e5) return cached.items;   // 10 min
+
+  const q = (name || sym) + ' crypto when:2d';
+  const gurl = 'https://news.google.com/rss/search?q='+encodeURIComponent(q)+
+               '&hl=en-US&gl=US&ceid=US:en';
+  let items = [];
+  try{
+    const j = await (await fetch(RSS2JSON+encodeURIComponent(gurl))).json();
+    if(j.status==='ok'){
+      items = (j.items||[]).map(it=>{
+        const t = Date.parse(String(it.pubDate||'').replace(' ','T')+'Z');
+        if(!isFinite(t)) return null;
+        return { src:'Google News', title:it.title||'', url:it.link||'', t,
+          body:String(it.description||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').slice(0,400) };
+      }).filter(Boolean);
+    }
+  }catch(e){ /* best-effort — the shared feed and structural read still stand */ }
+
+  nvCoinFeedCache[sym] = {items, at: Date.now()};
+  return items;
+}
+
 let newsFeed = null, newsFeedAt = 0, newsFeedLoading = null, newsFeedErr = null;
 let newsFeedSrcs = [];   // sources that actually answered this round
 
@@ -641,13 +676,14 @@ function nvWhyPanel(r){
       html += '<p class="nvnone">Could not reach the news feeds ('+nvEsc(newsFeedErr)+'). '+
               'The read above comes from the exchange data and still stands.</p>';
     }else{
-      const checked = newsFeedSrcs.length ? newsFeedSrcs.join(', ') : 'the news feeds';
-      html += '<p class="nvnone">No headline in the last 36 hours names '+nvEsc(r.sym)+
+      const checked = (newsFeedSrcs.length ? newsFeedSrcs.join(', ') : 'the news feeds') +
+                       (r.coinFeedOk ? ', and searched Google News directly for '+nvEsc(r.sym) : '');
+      html += '<p class="nvnone">No headline in the last day or two names '+nvEsc(r.sym)+
               (r.coinName ? ' or '+nvEsc(r.coinName) : '')+
-              ' — checked '+nvEsc(checked)+'. Be careful reading that as “nothing happened”: '+
-              'the major desks mostly cover BTC, ETH and regulation, and a mid-cap doing '+
-              nvPct(r.move,0)+' is usually below their line. The cause is more often an '+
-              'exchange listing elsewhere, an unlock, or a squeeze — which is what the '+
+              ' — checked '+checked+'. Be careful reading that as “nothing happened”: '+
+              'coverage thins out fast below BTC/ETH, and a mid-cap doing '+
+              nvPct(r.move,0)+' is usually below the line even for a direct search. The cause is more '+
+              'often an exchange listing elsewhere, an unlock, or a squeeze — which is what the '+
               'web search below is for.</p>';
     }
   }
@@ -705,9 +741,14 @@ async function openWhy(sym){
   if(r.headlines){ renderNews(); return; }
   r.newsBusy = true; renderNews();
   try{
-    const [feed] = await Promise.all([nvHeadlines(), nvLoadCoins()]);
+    await nvLoadCoins();
     r.coinName = nvCoinName(r.sym, null) || null;
-    r.headlines = nvMatchNews(r, feed);
+    const [feed, coinFeed] = await Promise.all([
+      nvHeadlines(),
+      nvCoinHeadlines(r.sym, r.coinName)
+    ]);
+    r.coinFeedOk = coinFeed.length > 0;
+    r.headlines = nvMatchNews(r, feed.concat(coinFeed));
   }catch(e){
     newsFeedErr = e.message;
     r.headlines = [];

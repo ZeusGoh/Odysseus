@@ -174,6 +174,6 @@ function renderWatch(){
   }).length;
   $('wsub').textContent = watch.length+' tracked · '+aligned+' with a clear directional read';
   $('wnote').textContent = store.durable()
-    ? 'Saved on this machine. Your list will be here next time you open Odysseus.'
+    ? 'Saved on this machine. Your list will be here next time you open ODYSSEUS.'
     : 'This preview cannot save to disk, so the list lasts only for this session. Open the downloaded file to keep it.';
 }

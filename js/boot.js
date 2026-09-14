@@ -25,9 +25,9 @@ $('a-save').onclick = ()=>{
 };
 $('a-test').onclick = async ()=>{
   $('a-test').textContent = 'Sending…';
-  const res = await sendTelegram('Odysseus test alert — if you can read this, Telegram is wired up correctly.');
-  notifyBrowser('Odysseus test alert', 'Browser notifications are working.');
-  alertLog.unshift({t:Date.now(), title:'Odysseus test alert', body:'manual test',
+  const res = await sendTelegram('ODYSSEUS test alert — if you can read this, Telegram is wired up correctly.');
+  notifyBrowser('ODYSSEUS test alert', 'Browser notifications are working.');
+  alertLog.unshift({t:Date.now(), title:'ODYSSEUS test alert', body:'manual test',
                     tg: res.ok ? 'sent' : (res.why||'off')});
   renderAlertLog();
   $('a-test').textContent = res.ok ? 'Sent' : 'Failed';

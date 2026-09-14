@@ -65,7 +65,7 @@ function loganContext(symArg){
   };
 }
 
-const LOGAN_SYSTEM = `You are Logan, the analyst built into Odysseus, a stochastic terminal for crypto perpetuals.
+const LOGAN_SYSTEM = `You are Logan, the analyst built into ODYSSEUS, a stochastic terminal for crypto perpetuals.
 
 HOW THE INDICATOR WORKS (this is the app's exact logic):
 - Stochastic 5,3,3 on each of five frames: 1M, 1W, 1D, 4H, 1H.

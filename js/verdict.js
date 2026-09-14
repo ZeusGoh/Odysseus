@@ -279,7 +279,7 @@ function offlineRead(symArg, text){
 function briefing(){
   const c = loganContext();
   const L = [];
-  L.push('Odysseus terminal snapshot — '+c.symbol+' ('+c.name+') on '+c.venue);
+  L.push('ODYSSEUS terminal snapshot — '+c.symbol+' ('+c.name+') on '+c.venue);
   L.push('Price '+(c.price!=null?fmtUsd(c.price):'n/a')+', composite '+c.composite+' (weighted -100..100, 1M=5 down to 1H=1)');
   L.push('');
   L.push('Frames (stochastic 5,3,3):');

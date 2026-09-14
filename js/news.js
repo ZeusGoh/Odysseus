@@ -710,7 +710,7 @@ function nvWhyPanel(r){
   if(!r.whyBusy && !(cached && cached.text)){
     const more = document.createElement('div');
     more.className = 'nvmore';
-    if(lgCfg.key){
+    if(lgCfg.anthropicKey){
       const b = document.createElement('button');
       b.className = 'nvask';
       b.textContent = 'Ask Logan to dig';
@@ -723,7 +723,7 @@ function nvWhyPanel(r){
     }else{
       const hint = document.createElement('span');
       hint.className = 'hint';
-      hint.textContent = 'Add an Anthropic API key in the Logan tab and this panel will also search the web and write up the catalyst. Everything above works without one.';
+      hint.textContent = 'Add a Claude API key in the Logan tab (this specific feature needs Claude, not Gemini) and this panel will also search the web and write up the catalyst. Everything above works without one.';
       more.appendChild(hint);
     }
     d.appendChild(more);
@@ -761,7 +761,7 @@ async function openWhy(sym){
     search on. Only reachable once a key is on file.                          */
 async function askLogan(sym){
   const r = newsRows.find(x=>x.sym===sym);
-  if(!r || r.whyBusy || !lgCfg.key) return;
+  if(!r || r.whyBusy || !lgCfg.anthropicKey) return;
 
   const bucket = sym+'.'+newsCfg.win+'.'+Math.floor(Date.now()/36e5);
   if(whyCache[bucket]){ r.why = whyCache[bucket]; renderNews(); return; }
@@ -769,7 +769,7 @@ async function askLogan(sym){
   r.whyBusy = true; renderNews();
 
   const body = {
-    model: lgCfg.model || 'claude-sonnet-5',
+    model: lgCfg.anthropicModel || 'claude-sonnet-5',
     max_tokens: 1000,
     system: WHY_SYSTEM,
     messages: [{role:'user', content: whyPrompt(r)}],
@@ -781,7 +781,7 @@ async function askLogan(sym){
       method:'POST',
       headers:{
         'Content-Type':'application/json',
-        'x-api-key': lgCfg.key,
+        'x-api-key': lgCfg.anthropicKey,
         'anthropic-version':'2023-06-01',
         'anthropic-dangerous-direct-browser-access':'true'
       },

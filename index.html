@@ -396,19 +396,31 @@
     <div class="lgoff" id="lg-offline" hidden>
       <b>Logan is not connected.</b> Answers below come from the built-in reader: fixed rules over the
       panel's numbers. It cannot reason, cannot look at other coins on its own, and cannot use any of
-      Logan's tools — so every answer has the same shape. Add an Anthropic API key under
-      <b>Connection</b> to switch it on.
+      Logan's tools — so every answer has the same shape. Add a Claude or Gemini API key (Gemini has a
+      free tier) under <b>Connection</b> to switch it on.
       <button id="lg-offbtn" class="ghost">Connection</button>
     </div>
 
     <div id="lg-settings" class="mod" hidden>
       <header><h2>Connection</h2><p>needed only when running the downloaded file</p></header>
       <div class="lgset">
-        <label>API key
+        <label>Provider
+          <span class="seg2" id="lg-provider" role="group" aria-label="Provider">
+            <button type="button" data-provider="anthropic" aria-pressed="true">Claude</button>
+            <button type="button" data-provider="gemini" aria-pressed="false">Gemini (free)</button>
+          </span>
+        </label>
+        <label id="lg-anthropic-fields" class="lgfieldgrp">API key
           <input type="password" id="lg-key" placeholder="sk-ant-..." autocomplete="off">
         </label>
-        <label>Model
+        <label id="lg-anthropic-fields-model" class="lgfieldgrp">Model
           <input type="text" id="lg-model" placeholder="claude-sonnet-5">
+        </label>
+        <label id="lg-gemini-fields" class="lgfieldgrp" hidden>API key
+          <input type="password" id="lg-gkey" placeholder="AIza..." autocomplete="off">
+        </label>
+        <label id="lg-gemini-fields-model" class="lgfieldgrp" hidden>Model
+          <input type="text" id="lg-gmodel" placeholder="gemini-2.5-flash">
         </label>
         <button id="lg-save">Save</button>
         <p class="lgnote" id="lg-keynote"></p>

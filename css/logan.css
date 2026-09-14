@@ -6,6 +6,7 @@
   .lgmode.api{color:var(--up);box-shadow:inset 0 0 0 1px rgba(8,153,129,.3)}
   .lgset{padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
   .lgset label{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--mute)}
+  .lgset [hidden]{display:none}
   .lgset input{width:250px;padding:7px 10px;font-size:12px;color:var(--ink);font-family:var(--mono);
         background:var(--void);border:1px solid var(--edge);border-radius:5px}
   .lgset #lg-save{padding:7px 14px;border-radius:5px;font-size:12px;color:var(--mute);

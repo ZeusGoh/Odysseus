@@ -11,13 +11,33 @@ const isFileOrigin = () => location.protocol === 'file:';
 const FILE_HINT = 'You opened this file directly from disk, so the browser sends no origin and the API will refuse the call whatever key you use. Serve the folder instead: open a terminal where this file lives, run  python3 -m http.server 8000  then visit http://localhost:8000/ and click the file.';
 let lgChat = [];                 // {role, content}
 let lgBusy = false;
+
+/*  Two backends, one agent. lgCfg keeps each provider's key/model under its
+    own field so switching back and forth never clobbers the other one. Older
+    saves only ever had {key, model} — that always meant Anthropic — so it is
+    migrated forward once rather than treated as gone.                       */
 const lgCfg = (()=>{
-  try{ return JSON.parse(localStorage.getItem(LG_KEY)||'{}'); }catch(e){ return {}; }
+  let c;
+  try{ c = JSON.parse(localStorage.getItem(LG_KEY)||'{}'); }catch(e){ c = {}; }
+  if(c.key && !c.anthropicKey) c.anthropicKey = c.key;
+  if(c.model && !c.anthropicModel) c.anthropicModel = c.model;
+  if(!c.provider) c.provider = 'anthropic';
+  return c;
 })();
 
 function lgSaveCfg(){
   try{ localStorage.setItem(LG_KEY, JSON.stringify(lgCfg)); return true; }catch(e){ return false; }
 }
+
+function lgActiveKey(){ return lgCfg.provider === 'gemini' ? lgCfg.geminiKey : lgCfg.anthropicKey; }
+function lgActiveModel(){
+  return lgCfg.provider === 'gemini'
+    ? (lgCfg.geminiModel || 'gemini-2.5-flash')
+    : (lgCfg.anthropicModel || 'claude-sonnet-5');
+}
+function lgHasKey(){ return !!lgActiveKey(); }
+function lgProviderLabel(){ return lgCfg.provider === 'gemini' ? 'Gemini' : 'Claude'; }
+function lgProviderHost(){ return lgCfg.provider === 'gemini' ? 'generativelanguage.googleapis.com' : 'api.anthropic.com'; }
 
 /*  Logan is handed the numbers the app has already computed. He is not asked to
     read a chart or recall prices — everything he cites comes from this object,
@@ -120,12 +140,12 @@ function lgPush(role, content, cls){
 function lgRender(cls){
   const log = $('lg-log');
   if(!lgChat.length){
-    const keyed = !!lgCfg.key;
+    const keyed = lgHasKey();
     log.innerHTML = '<div class="lgempty"><b>Logan reads the live state of whatever you have open.</b>'+
       (keyed
         ? 'He is an agent, not just a chat box: he can read any coin, pull the backtest for a setup, '+
           'sweep the board, find what is moving and why, check headlines, switch the terminal and edit '+
-          'your watchlist. You will see each step as he takes it.'
+          'your watchlist. You will see each step as he takes it. Running on '+lgProviderLabel()+'.'
         : 'With no API key connected he answers from the <b>built-in reader</b>: deterministic, offline '+
           'and free, walking the same numbers the panel shows. It states what they say but cannot hold '+
           'a conversation.<br><br>For actual reasoning at no cost, press <b>Copy briefing</b> and paste '+
@@ -244,6 +264,31 @@ const LG_TOOLS = [
       action:{type:'string', enum:['list','add','remove']},
       symbol:{type:'string', description:'Required for add and remove'}}, required:['action']} }
 ];
+
+/*  Gemini's function-declaration schema is the same shape as Anthropic's
+    input_schema — object/properties/required/items/enum — except the "type"
+    values are the proto enum's uppercase names rather than JSON Schema's
+    lowercase ones. One tool list, one recursive conversion, so the two
+    backends can never drift out of sync with each other.                    */
+const GEMINI_TYPE = {object:'OBJECT', string:'STRING', integer:'INTEGER',
+                      number:'NUMBER', boolean:'BOOLEAN', array:'ARRAY'};
+function toGeminiSchema(schema){
+  if(!schema || typeof schema !== 'object') return schema;
+  const out = {};
+  if(schema.type) out.type = GEMINI_TYPE[schema.type] || String(schema.type).toUpperCase();
+  if(schema.description) out.description = schema.description;
+  if(schema.enum) out.enum = schema.enum;
+  if(schema.items) out.items = toGeminiSchema(schema.items);
+  if(schema.properties){
+    out.properties = {};
+    Object.keys(schema.properties).forEach(k=> out.properties[k] = toGeminiSchema(schema.properties[k]));
+  }
+  if(schema.required) out.required = schema.required;
+  return out;
+}
+const GEMINI_TOOLS = [{functionDeclarations: LG_TOOLS.map(t=>(
+  {name:t.name, description:t.description, parameters: toGeminiSchema(t.input_schema)}
+))}];
 
 // Load a coin into memory if it is not already there, and return its canonical ticker
 async function lgEnsureCoin(code){
@@ -409,9 +454,9 @@ function lgToolLabel(name, input){
   return name;
 }
 
-async function lgCall(){
+async function lgCallAnthropic(){
   const body = {
-    model: lgCfg.model || 'claude-sonnet-5',
+    model: lgActiveModel(),
     max_tokens: 1500,
     system: LOGAN_SYSTEM + '\n\nTHE COIN CURRENTLY OPEN (JSON):\n' + JSON.stringify(loganContext()),
     tools: LG_TOOLS,
@@ -419,13 +464,42 @@ async function lgCall(){
   };
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
-    headers:{'Content-Type':'application/json', 'x-api-key':lgCfg.key,
+    headers:{'Content-Type':'application/json', 'x-api-key':lgActiveKey(),
              'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true'},
     body: JSON.stringify(body)
   });
   const j = await r.json();
   if(!r.ok) throw new Error((j && j.error && j.error.message) || ('request failed with '+r.status));
   return j;
+}
+
+/*  Gemini's generateContent, called the same way Google's own web playground
+    calls it — a plain client-side fetch, key as a query param, no special
+    browser-access header the way Anthropic needs one.                       */
+async function lgCallGemini(){
+  const body = {
+    systemInstruction: {parts:[{text:
+      LOGAN_SYSTEM + '\n\nTHE COIN CURRENTLY OPEN (JSON):\n' + JSON.stringify(loganContext())}]},
+    contents: lgApi,
+    tools: GEMINI_TOOLS,
+    generationConfig: {maxOutputTokens: 1500}
+  };
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/'+
+    encodeURIComponent(lgActiveModel())+':generateContent?key='+encodeURIComponent(lgActiveKey());
+  const r = await fetch(url, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+  });
+  const j = await r.json();
+  if(!r.ok) throw new Error((j && j.error && j.error.message) || ('request failed with '+r.status));
+  return j;
+}
+
+// a runaway tool result would blow the context; truncating beats failing.
+// Gemini's functionResponse.response has to stay a JSON object, so a
+// truncated result is wrapped rather than cut into invalid JSON.
+function lgTruncated(out){
+  const s = JSON.stringify(out);
+  return s.length <= 24000 ? out : {truncated:true, result: s.slice(0, 24000)};
 }
 
 async function lgSend(text){
@@ -435,14 +509,47 @@ async function lgSend(text){
 
   // With no key there is nothing to call, so the built-in reader answers. It is
   // not a language model, has no tools, and says so.
-  if(!lgCfg.key){ lgPush('assistant', await offlineAnswer(text)); return; }
+  if(!lgHasKey()){ lgPush('assistant', await offlineAnswer(text)); return; }
 
-  lgApi.push({role:'user', content:text});
+  const gemini = lgCfg.provider === 'gemini';
+  lgApi.push(gemini ? {role:'user', parts:[{text}]} : {role:'user', content:text});
   lgBusy = true; $('lg-send').disabled = true; lgRender();
 
   try{
     for(let turn=0; turn<LG_MAX_TURNS; turn++){
-      const j = await lgCall();
+
+      if(gemini){
+        const j = await lgCallGemini();
+        const cand = j.candidates && j.candidates[0];
+        const parts = (cand && cand.content && cand.content.parts) || [];
+        const calls = parts.filter(p=>p.functionCall);
+
+        if(calls.length){
+          const lead = parts.filter(p=>p.text && p.text.trim()).map(p=>p.text.trim()).join('\n');
+          if(lead) lgChat.push({role:'assistant', content:lead});
+          lgApi.push({role:'model', parts});   // echo the model's own turn back verbatim
+
+          const results = [];
+          for(const fc of calls){
+            lgChat.push({role:'tool', content:lgToolLabel(fc.functionCall.name, fc.functionCall.args)});
+            lgRender();
+            let out;
+            try{ out = await lgRunTool(fc.functionCall.name, fc.functionCall.args||{}); }
+            catch(e){ out = {error:e.message}; }
+            results.push({functionResponse:{name:fc.functionCall.name, response: lgTruncated(out)}});
+          }
+          lgApi.push({role:'user', parts: results});
+          continue;
+        }
+
+        const outText = parts.filter(p=>p.text).map(p=>p.text).join('\n').trim();
+        lgApi.push({role:'model', parts: parts.length ? parts : [{text: outText || '(no answer)'}]});
+        lgBusy = false; $('lg-send').disabled = false;
+        lgPush('assistant', outText || 'No response came back.');
+        return;
+      }
+
+      const j = await lgCallAnthropic();
 
       if(j.stop_reason === 'tool_use'){
         lgApi.push({role:'assistant', content:j.content});
@@ -456,7 +563,6 @@ async function lgSend(text){
           let out;
           try{ out = await lgRunTool(blk.name, blk.input); }
           catch(e){ out = {error:e.message}; }
-          // a runaway result would blow the context; truncating beats failing
           results.push({type:'tool_result', tool_use_id:blk.id,
                         content: JSON.stringify(out).slice(0, 24000)});
         }
@@ -474,7 +580,7 @@ async function lgSend(text){
     lgPush('assistant', 'That used up my tool budget without landing an answer. Ask again more narrowly.');
   }catch(e){
     lgBusy = false; $('lg-send').disabled = false;
-    let hint = 'Logan could not reach the API: '+e.message;
+    let hint = lgProviderLabel()+' could not reach the API: '+e.message;
     if(isFileOrigin()) hint += '\n\n'+FILE_HINT;
     lgChat.push({role:'assistant', content:hint, error:true});
     lgRender();
@@ -505,22 +611,38 @@ function lgBuildQuick(){
 
 function lgSetMode(){
   const off = $('lg-offline');
-  if(off) off.hidden = !!lgCfg.key;
+  const keyed = lgHasKey();
+  if(off) off.hidden = keyed;
   const el = $('lg-mode');
   if(!el) return;
-  el.textContent = lgCfg.key ? 'Claude' : 'built-in reader';
-  el.classList.toggle('api', !!lgCfg.key);
-  el.title = lgCfg.key
-    ? 'Questions go to Claude through your API key'
+  el.textContent = keyed ? lgProviderLabel() : 'built-in reader';
+  el.classList.toggle('api', keyed);
+  el.title = keyed
+    ? 'Questions go to '+lgProviderLabel()+' through your API key'
     : 'Answers come from the built-in reader — deterministic, offline, free';
 }
 
+// switch which provider's fields are visible in the Connection panel — does
+// not touch lgCfg.provider itself, which is only committed on Save
+function lgShowProviderFields(p){
+  document.querySelectorAll('#lg-provider button').forEach(b=>
+    b.setAttribute('aria-pressed', b.dataset.provider === p));
+  $('lg-anthropic-fields').hidden = $('lg-anthropic-fields-model').hidden = p !== 'anthropic';
+  $('lg-gemini-fields').hidden = $('lg-gemini-fields-model').hidden = p !== 'gemini';
+}
+
 function lgInit(){
-  $('lg-key').value = lgCfg.key || '';
-  $('lg-model').value = lgCfg.model || '';
-  const base = lgCfg.key
-    ? 'A key is saved in this browser. It is sent only to api.anthropic.com.'
-    : 'Get a key at console.anthropic.com. It stays in this browser and is sent only to api.anthropic.com. Inside a Claude artifact no key is needed.';
+  $('lg-key').value = lgCfg.anthropicKey || '';
+  $('lg-model').value = lgCfg.anthropicModel || '';
+  $('lg-gkey').value = lgCfg.geminiKey || '';
+  $('lg-gmodel').value = lgCfg.geminiModel || '';
+  lgShowProviderFields(lgCfg.provider || 'anthropic');
+
+  const base = lgHasKey()
+    ? 'A key is saved in this browser. It is sent only to '+lgProviderHost()+'.'
+    : 'Claude: get a key at console.anthropic.com (paid). Gemini: get a free key at aistudio.google.com '+
+      '(a generous free tier, no card needed — Google may use free-tier prompts for training outside '+
+      'the EU/UK/EEA). Either way the key stays in this browser and is sent only to that provider.';
   $('lg-keynote').textContent = isFileOrigin() ? base+' — '+FILE_HINT : base;
   lgBuildQuick();
   lgSetMode();

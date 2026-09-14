@@ -73,7 +73,13 @@ $('j-account').value = jCfg.account;
 $('j-riskpct').value = jCfg.riskPct;
 renderJournal();
 $('nav-logan').onclick = ()=> setView('logan');
-$('lg-offbtn').onclick = ()=>{ const b=$('lg-settings'); b.hidden=false; $('lg-key').focus(); };
+$('lg-offbtn').onclick = ()=>{
+  const b=$('lg-settings'); b.hidden=false;
+  ((lgCfg.provider==='gemini') ? $('lg-gkey') : $('lg-key')).focus();
+};
+document.querySelectorAll('#lg-provider button').forEach(b=>{
+  b.onclick = ()=> lgShowProviderFields(b.dataset.provider);
+});
 $('lg-send').onclick = ()=>{ const t=$('lg-text'); lgSend(t.value); t.value=''; t.style.height='auto'; };
 $('lg-text').addEventListener('keydown', e=>{
   if(e.key==='Enter' && !e.shiftKey){
@@ -88,14 +94,19 @@ $('lg-text').addEventListener('input', e=>{
 $('lg-clear').onclick = ()=>{ lgChat = []; lgApi = []; lgRender(); };
 $('lg-setup').onclick = ()=>{ const b=$('lg-settings'); b.hidden = !b.hidden; };
 $('lg-save').onclick = ()=>{
-  lgCfg.key = $('lg-key').value.trim();
-  lgCfg.model = $('lg-model').value.trim();
+  const chosen = document.querySelector('#lg-provider button[aria-pressed="true"]');
+  lgCfg.provider = (chosen && chosen.dataset.provider) || 'anthropic';
+  lgCfg.anthropicKey = $('lg-key').value.trim();
+  lgCfg.anthropicModel = $('lg-model').value.trim();
+  lgCfg.geminiKey = $('lg-gkey').value.trim();
+  lgCfg.geminiModel = $('lg-gmodel').value.trim();
   const ok = lgSaveCfg();
   $('lg-keynote').textContent = ok
-    ? 'Saved in this browser. Sent only to api.anthropic.com.'
+    ? 'Saved in this browser. Sent only to '+lgProviderHost()+'.'
     : 'This preview cannot save settings, so the key lasts only for this session.';
   $('lg-settings').hidden = true;
   lgSetMode();
+  lgRender();   // the empty-state copy differs online vs offline; refresh it now, not just the mode badge
 };
 $('lg-brief').onclick = async ()=>{
   const text = briefing();

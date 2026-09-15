@@ -25,11 +25,25 @@ const AGENTS = {};
 
 function agentMake(spec){
   const ag = Object.assign({
-    chat: [],          // what the user sees
-    api: [],           // provider-shaped transcript, including tool blocks
+    sessions: [],      // {id, title, at, provider, chat, api} — newest first
+    activeId: null,
     busy: false,
     quick: []
   }, spec);
+
+  /*  chat and api used to be plain arrays on the agent. They are now windows
+      onto whichever session is open, defined as accessors so that every line
+      of the tool loop — ag.chat.push(...), ag.api = ag.api.slice(...) — goes on
+      working untouched. Conversations became a list without the loop learning
+      that conversations are a list.                                          */
+  Object.defineProperty(ag, 'chat', {
+    get(){ return agSession(ag).chat; },
+    set(v){ agSession(ag).chat = v; }
+  });
+  Object.defineProperty(ag, 'api', {
+    get(){ return agSession(ag).api; },
+    set(v){ agSession(ag).api = v; }
+  });
   ag.geminiTools = [{functionDeclarations: ag.tools.map(t=>(
     {name:t.name, description:t.description, parameters:toGeminiSchema(t.input_schema)}))}];
   ag.openaiTools = ag.tools.map(t=>({
@@ -112,6 +126,72 @@ function lgIsUserTurn(m){
   return false;
 }
 
+/* ---------- sessions ----------
+   One transcript per agent meant every new line of thought landed on top of the
+   last one, and the only way to start clean was to destroy what was there. A
+   conversation is now one of a list: start a new one and the old ones stay,
+   switch back to any of them, delete the ones you are done with.             */
+
+const AG_MAX_SESSIONS = 30;      // a list you can still read, not an archive
+
+function agNewSessionObj(){
+  return {id: 's'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+          title: null, at: Date.now(), provider: lgCfg.provider, chat: [], api: []};
+}
+
+// the open session, creating one if the agent has none — never returns null,
+// because every caller of ag.chat would have to null-check it if it could
+function agSession(ag){
+  let s = ag.sessions.find(x => x.id === ag.activeId);
+  if(!s){
+    s = ag.sessions[0] || null;
+    if(!s){ s = agNewSessionObj(); ag.sessions.unshift(s); }
+    ag.activeId = s.id;
+  }
+  return s;
+}
+
+// named after what was actually asked, which is what makes a list scannable
+function agSessionTitle(s){
+  if(s.title) return s.title;
+  const first = s.chat.find(m => m.role === 'user');
+  if(!first) return 'New chat';
+  const t = first.content.replace(/\s+/g,' ').trim();
+  return t.length > 42 ? t.slice(0,42)+'…' : t;
+}
+
+function agNewSession(ag){
+  /*  An untouched session is reused rather than stacking blanks — pressing New
+      twice should not leave an empty conversation behind to tidy up later.   */
+  const open = agSession(ag);
+  if(!open.chat.length){ open.at = Date.now(); open.provider = lgCfg.provider; }
+  else{
+    const s = agNewSessionObj();
+    ag.sessions.unshift(s);
+    ag.activeId = s.id;
+  }
+  agSaveChat(ag); agRenderSessions(ag); agRender(ag);
+}
+
+function agSwitchSession(ag, id){
+  if(!ag.sessions.some(x => x.id === id)) return;
+  ag.activeId = id;
+  agSaveChat(ag); agRenderSessions(ag); agRender(ag);
+}
+
+function agDeleteSession(ag, id){
+  const at = ag.sessions.findIndex(x => x.id === id);
+  if(at < 0) return;
+  ag.sessions.splice(at, 1);
+  /*  Deleting the open one falls to its neighbour rather than to nothing, and
+      an emptied list gets a fresh session immediately — an agent with no
+      session is a state nothing else in here is written to handle.          */
+  if(ag.activeId === id) ag.activeId = (ag.sessions[at] || ag.sessions[at-1] || null) &&
+                                       (ag.sessions[at] || ag.sessions[at-1]).id;
+  if(!ag.sessions.length){ const s = agNewSessionObj(); ag.sessions.push(s); ag.activeId = s.id; }
+  agSaveChat(ag); agRenderSessions(ag); agRender(ag);
+}
+
 // drop the oldest complete exchange from both transcripts at once. Returns
 // false when only one exchange is left, since half an exchange is unusable.
 function agDropOldestExchange(ag){
@@ -127,10 +207,29 @@ function agDropOldestExchange(ag){
 
 function agSaveChat(ag){
   try{
-    const pack = ()=> JSON.stringify({v:1, provider:lgCfg.provider, at:Date.now(),
-                                      chat:ag.chat, api:ag.api});
+    const open = agSession(ag);
+    /*  Name it once, and only once there is something to name it after.
+        Storing the "New chat" placeholder as a real title froze it there —
+        agSessionTitle returns a set title verbatim, so the session never
+        picked up the question that was actually asked. Naming it on the first
+        save also means the title survives that message later being trimmed
+        off the front of a long conversation.                                 */
+    if(!open.title && open.chat.some(m => m.role === 'user')) open.title = agSessionTitle(open);
+    if(ag.sessions.length > AG_MAX_SESSIONS) ag.sessions.length = AG_MAX_SESSIONS;
+    const pack = ()=> JSON.stringify({v:2, activeId: ag.activeId, sessions: ag.sessions});
     let blob = pack();
+    /*  Trim the open conversation first — that is the one actually growing.
+        Only once it cannot give any more does an old session get dropped, and
+        never the one being read.                                             */
     while(blob.length > LG_CHAT_MAX && agDropOldestExchange(ag)) blob = pack();
+    while(blob.length > LG_CHAT_MAX && ag.sessions.length > 1){
+      const victim = ag.sessions.map((s,i)=>({s,i}))
+        .filter(x => x.s.id !== ag.activeId)
+        .sort((a,b)=> a.s.at - b.s.at)[0];
+      if(!victim) break;
+      ag.sessions.splice(victim.i, 1);
+      blob = pack();
+    }
     return vlPut(ag.chatKey, blob);
   }catch(e){ return false; }
 }
@@ -138,22 +237,36 @@ function agSaveChat(ag){
 function agLoadChat(ag){
   try{
     const raw = JSON.parse(localStorage.getItem(ag.chatKey) || 'null');
-    if(!raw || !Array.isArray(raw.chat) || !Array.isArray(raw.api)) return;
-    ag.chat = raw.chat;
+    if(!raw) return;
+
+    if(Array.isArray(raw.sessions)){
+      ag.sessions = raw.sessions.filter(s => s && Array.isArray(s.chat) && Array.isArray(s.api));
+      ag.activeId = raw.activeId;
+    }else if(Array.isArray(raw.chat) && Array.isArray(raw.api)){
+      /*  The single-transcript format this replaced. Carried forward as one
+          session rather than discarded — it is someone's conversation.       */
+      ag.sessions = [{id:'s-migrated', title:null, at: raw.at || Date.now(),
+                      provider: raw.provider, chat: raw.chat, api: raw.api}];
+      ag.activeId = 's-migrated';
+    }else return;
+
     /*  A transcript recorded under another provider is kept on screen but not
         replayed — the wire formats do not interchange, and sending Claude's
-        blocks to Gemini fails outright. The agent sees a fresh context; you
-        still see what was said.                                              */
-    ag.api = (raw.provider === lgCfg.provider) ? raw.api : [];
+        blocks to Gemini fails outright. Judged per session, since each one
+        remembers which backend it was built under.                           */
+    ag.sessions.forEach(s=>{ if(s.provider !== lgCfg.provider) s.api = []; });
+    if(!ag.sessions.length) ag.activeId = null;
   }catch(e){}
 }
 
-/*  Cleared by writing an empty transcript rather than deleting the key. A
+/*  Clearing empties the open conversation rather than deleting the key. A
     deleted key looks like "nothing to say" to the sync, which would let the
     other machine's copy flow back on the next pull and undo the clear.      */
 function agForgetChat(ag){
-  ag.chat = []; ag.api = [];
+  const s = agSession(ag);
+  s.chat = []; s.api = []; s.title = null;
   agSaveChat(ag);
+  agRenderSessions(ag);
 }
 
 /*  Logan is handed the numbers the app has already computed. He is not asked to
@@ -250,9 +363,32 @@ HOW TO ANSWER:
   what price will do next, and do not suggest position sizes or leverage.`;
 
 function agPush(ag, role, content, cls){
+  const wasBlank = !ag.chat.length;
   ag.chat.push({role, content});
   agSaveChat(ag);
+  // the first message is what names the session, so the list needs redrawing
+  if(wasBlank) agRenderSessions(ag);
   agRender(ag, cls);
+}
+
+/*  The list of conversations. Rendered separately from the log because it
+    changes on a different cadence — the log redraws on every token of activity,
+    this only when a session is started, switched, deleted or first named.    */
+function agRenderSessions(ag){
+  const box = $(ag.dom.sessions);
+  if(!box) return;
+  box.innerHTML = '';
+  agSession(ag);   // guarantees there is an active one to mark
+  ag.sessions.forEach(s=>{
+    const b = document.createElement('button');
+    b.className = 'lgsess' + (s.id === ag.activeId ? ' on' : '');
+    b.dataset.sess = s.id;
+    b.title = agSessionTitle(s) + ' — ' + new Date(s.at).toLocaleString();
+    b.innerHTML = '<span class="lgsesst"></span>'+
+                  '<span class="lgsessx" data-del="'+s.id+'" title="delete this chat">×</span>';
+    b.querySelector('.lgsesst').textContent = agSessionTitle(s);
+    box.appendChild(b);
+  });
 }
 
 function agRender(ag, cls){
@@ -888,6 +1024,7 @@ function lgInit(){
     if(ag !== LOGAN) agLoadChat(ag);
     agBuildQuick(ag);
     agSetMode(ag);
+    agRenderSessions(ag);
     agRender(ag);
   });
 }
@@ -897,7 +1034,8 @@ function lgInit(){
 const LOGAN = agentMake({
   id:'logan', name:'Logan', chatKey: LG_CHAT_KEY,
   tools: LG_TOOLS, run: lgRunTool, label: lgToolLabel, quick: LG_QUICK,
-  dom: {log:'lg-log', send:'lg-send', quick:'lg-quick', mode:'lg-mode', offline:'lg-offline'},
+  dom: {log:'lg-log', send:'lg-send', quick:'lg-quick', mode:'lg-mode', offline:'lg-offline',
+        sessions:'lg-sessions'},
   system: ()=> LOGAN_SYSTEM + '\n\nTHE COIN CURRENTLY OPEN (JSON):\n' + JSON.stringify(loganContext()),
   offline: (text)=> offlineAnswer(text),
   empty: (keyed)=> '<div class="lgempty"><b>Logan reads the live state of whatever you have open.</b>'+

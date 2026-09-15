@@ -33,8 +33,9 @@
       <button id="nav-terminal" aria-pressed="true">Terminal</button>
       <button id="nav-watch" aria-pressed="false">Watchlist <span class="cnt" id="watch-count">0</span></button>
       <button id="nav-scan" aria-pressed="false">Scanner</button>
-      <p class="navgrp">Research</p>
       <button id="nav-news" aria-pressed="false">Anomaly</button>
+      <p class="navgrp">Research</p>
+      <button id="nav-anomhist" aria-pressed="false">Anomaly History</button>
       <button id="nav-sessions" aria-pressed="false">Sessions</button>
       <button id="nav-hist" aria-pressed="false">History</button>
       <p class="navgrp">Trading</p>
@@ -43,6 +44,7 @@
       <p class="navgrp">Agents</p>
       <button id="nav-logan" aria-pressed="false">Logan</button>
       <button id="nav-maria" aria-pressed="false">Maria</button>
+      <button id="nav-paul" aria-pressed="false">Paul</button>
       <p class="navgrp">Account</p>
       <button id="nav-cloud" aria-pressed="false">Cloud <span class="cnt" id="cloud-dot">local</span></button>
     </nav>
@@ -477,6 +479,10 @@
     </div>
 
     <section class="mod lgchat">
+      <div class="lgsessbar">
+        <button class="lgnewchat" id="lg-newchat">+ New chat</button>
+        <div class="lgsesslist" id="lg-sessions"></div>
+      </div>
       <div id="lg-log" class="lglog"></div>
       <div class="lgquick" id="lg-quick"></div>
       <div class="lginput">
@@ -506,11 +512,79 @@
     </div>
 
     <section class="mod lgchat">
+      <div class="lgsessbar">
+        <button class="lgnewchat" id="mr-newchat">+ New chat</button>
+        <div class="lgsesslist" id="mr-sessions"></div>
+      </div>
       <div id="mr-log" class="lglog"></div>
       <div class="lgquick" id="mr-quick"></div>
       <div class="lginput">
         <textarea id="mr-text" rows="1" placeholder="Ask Maria what your record shows"></textarea>
         <button id="mr-send">Send</button>
+      </div>
+    </section>
+  </section>
+
+  <section id="anomhistview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">Anomaly History</h1>
+        <p class="wsub">Every flag the detector has written down, and whether it turned out to mean anything.</p>
+      </div>
+      <div class="lgtools">
+        <span class="lgmode" id="ah-count"></span>
+      </div>
+    </div>
+
+    <section class="mod">
+      <header><h2>Detector track record</h2><p>does a flag mean anything? — % that held, by what the detector called the move</p></header>
+      <div class="mrow anomhead">
+        <span>Classification</span><span>+1h held</span><span>+4h held</span><span>+24h held</span>
+      </div>
+      <div id="anomrows"><div class="loading">Nothing logged yet.</div></div>
+    </section>
+
+    <section class="mod">
+      <header><h2>Flag log</h2><p>every abnormal move written down at the moment it fired</p></header>
+      <div class="mrow anomloghead">
+        <span>Coin</span><span>Move</span><span>Excess</span><span>Read</span>
+        <span>+1h</span><span>+4h</span><span>+24h</span>
+      </div>
+      <div id="anomlog"><div class="loading">No flags logged yet.</div></div>
+    </section>
+    <p class="wnote" id="anomnote"></p>
+
+  </section>
+
+  <section id="paulview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">Paul</h1>
+        <p class="wsub">Reads the anomaly record — which flags held, which faded, and what the detector is actually worth.</p>
+      </div>
+      <div class="lgtools">
+        <span class="lgmode" id="pl-mode"></span>
+        <button id="pl-clear" class="ghost">Clear</button>
+        <button id="pl-setup" class="ghost">Connection</button>
+      </div>
+    </div>
+
+    <div class="lgoff" id="pl-offline" hidden>
+      <b>Paul is not connected.</b> Like Maria he has no offline mode — reading a record is judgement,
+      and the Anomaly History panels already show the arithmetic. Add a key under <b>Connection</b>;
+      all three agents share it.
+    </div>
+
+    <section class="mod lgchat">
+      <div class="lgsessbar">
+        <button class="lgnewchat" id="pl-newchat">+ New chat</button>
+        <div class="lgsesslist" id="pl-sessions"></div>
+      </div>
+      <div id="pl-log" class="lglog"></div>
+      <div class="lgquick" id="pl-quick"></div>
+      <div class="lginput">
+        <textarea id="pl-text" rows="1" placeholder="Ask Paul what the flags are worth"></textarea>
+        <button id="pl-send">Send</button>
       </div>
     </section>
   </section>
@@ -620,24 +694,6 @@
     <p class="wnote" id="nvnote"></p>
 
     <section class="mod">
-      <header><h2>Detector track record</h2><p>does a flag mean anything? — % that held, by what the detector called the move</p></header>
-      <div class="mrow anomhead">
-        <span>Classification</span><span>+1h held</span><span>+4h held</span><span>+24h held</span>
-      </div>
-      <div id="anomrows"><div class="loading">Nothing logged yet.</div></div>
-    </section>
-
-    <section class="mod">
-      <header><h2>Flag log</h2><p>every abnormal move written down at the moment it fired</p></header>
-      <div class="mrow anomloghead">
-        <span>Coin</span><span>Move</span><span>Excess</span><span>Read</span>
-        <span>+1h</span><span>+4h</span><span>+24h</span>
-      </div>
-      <div id="anomlog"><div class="loading">No flags logged yet.</div></div>
-    </section>
-    <p class="wnote" id="anomnote"></p>
-
-    <section class="mod">
       <header><h2>Coiled</h2><p>compressed range, quiet volume, open interest building — flagged before the move, scored on whether it expanded</p></header>
       <div class="mrow coilhead">
         <span>Coin</span><span>Range</span><span>Volume</span><span>OI</span><span>Signals</span>
@@ -676,6 +732,7 @@
 <script src="js/journal.js"></script>
 <!-- after journal.js: Maria's groupers reference its helpers at load time -->
 <script src="js/maria.js"></script>
+<script src="js/paul.js"></script>
 <script src="js/app.js"></script>
 <script src="js/boot.js"></script>
 </body>

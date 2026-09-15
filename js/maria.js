@@ -250,7 +250,8 @@ async function mrOffline(){
 const MARIA = agentMake({
   id:'maria', name:'Maria', chatKey: MARIA_CHAT_KEY,
   tools: MARIA_TOOLS, run: mrRunTool, label: mrToolLabel, quick: MARIA_QUICK,
-  dom: {log:'mr-log', send:'mr-send', quick:'mr-quick', mode:'mr-mode', offline:'mr-offline'},
+  dom: {log:'mr-log', send:'mr-send', quick:'mr-quick', mode:'mr-mode', offline:'mr-offline',
+        sessions:'mr-sessions'},
   system: ()=> MARIA_SYSTEM,
   offline: mrOffline,
   empty: (keyed)=> '<div class="lgempty"><b>Maria reads your trade history, not the market.</b>'+

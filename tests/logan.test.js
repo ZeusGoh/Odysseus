@@ -3,7 +3,8 @@
    and Gemini both) need a real browser and a real key — not exercised here.
    part of Odysseus */
 const {load} = require('./harness');
-const app = load(['cloud.js', 'logan.js']);   // logan persists through cloud.js's vlPut
+// state.js supplies $, which the session list renders through; cloud.js supplies vlPut
+const app = load(['cloud.js', 'indicators.js', 'state.js', 'logan.js']);
 const {toGeminiSchema, LG_TOOLS, lgToolLabel, lgErrorHint, lgApiError, lgTransient, LOGAN} = app;
 // the per-agent conversions, built once by agentMake
 const GEMINI_TOOLS = LOGAN.geminiTools, OPENAI_TOOLS = LOGAN.openaiTools;
@@ -189,4 +190,102 @@ suite('LG_PROVIDERS — three backends, each with its own key and model');
      Object.values(LG_PROVIDERS).every(p=>!!p.model));
   check('OpenRouter defaults to the free auto-router, not a named model that could be down',
         LG_PROVIDERS.openrouter.model, 'openrouter/free');
+}
+
+suite('sessions — a conversation is one of a list now');
+{
+  const {agentMake, agSession, agNewSession, agSwitchSession, agDeleteSession,
+         agSessionTitle, agSaveChat, agLoadChat} = app;
+  const mk = (id)=> agentMake({id, name:'T'+id, chatKey:'vl.test.'+id+'.v1', tools:[],
+    run:async()=>({}), label:n=>n, dom:{}, system:()=>'', offline:async()=>'',
+    empty:()=>''});
+
+  const a = mk('t1');
+  check('an agent starts with no session at all — they are made on demand', a.sessions.length, 0);
+  check('touching the chat creates one', a.chat.length, 0);
+  check('which now exists', a.sessions.length, 1);
+  check('and is the active one', agSession(a).id, a.activeId);
+
+  a.chat.push({role:'user', content:'first question'});
+  check('writing through the accessor lands in the session',
+        a.sessions[0].chat.length, 1);
+  check('the title comes from the first thing asked',
+        agSessionTitle(a.sessions[0]), 'first question');
+
+  agNewSession(a);
+  check('a new chat is added rather than replacing', a.sessions.length, 2);
+  check('the new one is active and empty', a.chat.length, 0);
+  check('the old one is untouched and still listed',
+        a.sessions.find(s=>s.chat.length===1).chat[0].content, 'first question');
+
+  agNewSession(a);
+  check('pressing new on an untouched session reuses it rather than stacking blanks',
+        a.sessions.length, 2);
+
+  const older = a.sessions.find(s=>s.id !== a.activeId);
+  agSwitchSession(a, older.id);
+  check('switching moves the window', a.chat[0].content, 'first question');
+
+  agDeleteSession(a, older.id);
+  check('deleting removes it', a.sessions.length, 1);
+  ok('and the survivor becomes active', a.activeId === a.sessions[0].id);
+
+  agDeleteSession(a, a.activeId);
+  check('deleting the last one leaves a fresh empty session rather than none',
+        a.sessions.length, 1);
+  check('which is empty', a.chat.length, 0);
+}
+
+suite('sessions — the single-transcript format is carried forward, not dropped');
+{
+  const {agentMake, agLoadChat, agSessionTitle} = app;
+  const key = 'vl.test.migrate.v1';
+  app.localStorage.setItem(key, JSON.stringify({
+    v:1, provider: app.lgCfg.provider, at: 1700000000000,
+    chat:[{role:'user', content:'an old conversation'}], api:[{role:'user', content:'an old conversation'}]
+  }));
+  const a = agentMake({id:'tm', name:'TM', chatKey:key, tools:[], run:async()=>({}),
+    label:n=>n, dom:{}, system:()=>'', offline:async()=>'', empty:()=>''});
+  agLoadChat(a);
+  check('the old transcript becomes one session', a.sessions.length, 1);
+  check('with its content intact', a.chat[0].content, 'an old conversation');
+  check('and it is the open one', a.activeId, 's-migrated');
+  check('named from what was asked', agSessionTitle(a.sessions[0]), 'an old conversation');
+}
+
+suite('sessions — a transcript built on another provider is shown but not replayed');
+{
+  const {agentMake, agLoadChat} = app;
+  const key = 'vl.test.prov.v1';
+  app.localStorage.setItem(key, JSON.stringify({v:2, activeId:'x', sessions:[
+    {id:'x', title:null, at:1, provider:'a-different-provider',
+     chat:[{role:'user', content:'said out loud'}], api:[{role:'user', content:'replayable'}]}
+  ]}));
+  const a = agentMake({id:'tp', name:'TP', chatKey:key, tools:[], run:async()=>({}),
+    label:n=>n, dom:{}, system:()=>'', offline:async()=>'', empty:()=>''});
+  agLoadChat(a);
+  check('what was said stays on screen', a.chat.length, 1);
+  check('what would be replayed is dropped', a.api.length, 0);
+}
+
+suite('sessions — an empty one is not named prematurely');
+{
+  const {agentMake, agSaveChat, agSessionTitle} = app;
+  const a = agentMake({id:'tn', name:'TN', chatKey:'vl.test.name.v1', tools:[], run:async()=>({}),
+    label:n=>n, dom:{}, system:()=>'', offline:async()=>'', empty:()=>''});
+  a.chat;                       // materialise the session
+  agSaveChat(a);                // saved while still empty
+  check('an empty session carries no stored title', a.sessions[0].title, null);
+  check('and only reads as New chat', agSessionTitle(a.sessions[0]), 'New chat');
+
+  a.chat.push({role:'user', content:'the real question'});
+  agSaveChat(a);
+  check('the first question becomes the stored title',
+        a.sessions[0].title, 'the real question');
+
+  // trimming the front of a long conversation must not rename it
+  a.chat.shift();
+  agSaveChat(a);
+  check('and it survives that message being trimmed away later',
+        a.sessions[0].title, 'the real question');
 }

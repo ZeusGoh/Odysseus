@@ -160,6 +160,37 @@ $('lg-brief').onclick = async ()=>{
   }
   setTimeout(()=>{ $('lg-brief').textContent = 'Copy briefing'; }, 1800);
 };
+/* ---------- saved chats ----------
+   One delegated listener per agent covers both switching and deleting, and the
+   delete × sits inside the session button, so the guard on it has to come first
+   or clicking × would also switch to the session being removed.             */
+function wireSessions(ag, newBtnId){
+  $(newBtnId).onclick = ()=> agNewSession(ag);
+  $(ag.dom.sessions).addEventListener('click', e=>{
+    const del = e.target.closest('[data-del]');
+    if(del){ e.stopPropagation(); agDeleteSession(ag, del.dataset.del); return; }
+    const b = e.target.closest('[data-sess]');
+    if(b) agSwitchSession(ag, b.dataset.sess);
+  });
+}
+
+/* ---------- Paul ---------- */
+$('nav-paul').onclick = ()=> setView('paul');
+$('nav-anomhist').onclick = ()=> setView('anomhist');
+$('pl-send').onclick = ()=>{ const t=$('pl-text'); plSend(t.value); t.value=''; t.style.height='auto'; };
+$('pl-text').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey){
+    e.preventDefault();
+    const t=$('pl-text'); plSend(t.value); t.value=''; t.style.height='auto';
+  }
+});
+$('pl-text').addEventListener('input', e=>{
+  e.target.style.height='auto';
+  e.target.style.height = Math.min(130, e.target.scrollHeight)+'px';
+});
+$('pl-clear').onclick = ()=>{ plForgetChat(); plRender(); };
+$('pl-setup').onclick = ()=>{ setView('logan'); $('lg-settings').hidden = false; };
+
 /* ---------- Maria ---------- */
 $('nav-maria').onclick = ()=> setView('maria');
 $('mr-send').onclick = ()=>{ const t=$('mr-text'); mrSend(t.value); t.value=''; t.style.height='auto'; };
@@ -279,6 +310,9 @@ watch = store.read();
 updateWatchCount();
 renderTrackBtn();
 lgInit();
+wireSessions(LOGAN, 'lg-newchat');
+wireSessions(MARIA, 'mr-newchat');
+wireSessions(PAUL,  'pl-newchat');
 cloudInit();
 buildScanControls();
 buildHistHeads();

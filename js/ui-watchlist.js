@@ -6,7 +6,8 @@
 // view is named on screen now that the buttons live in a dropdown
 const VIEW_LABELS = {terminal:'Terminal', watch:'Watchlist', scan:'Scanner', news:'Anomaly',
                      alerts:'Alerts', hist:'History', sessions:'Sessions',
-                     journal:'Journal', logan:'Logan', maria:'Maria', cloud:'Cloud'};
+                     journal:'Journal', logan:'Logan', maria:'Maria', paul:'Paul',
+                     anomhist:'Anomaly History', cloud:'Cloud'};
 
 // no argument toggles; true/false forces
 function navOpen(on){
@@ -23,6 +24,8 @@ function setView(next){
   $('watchview').hidden    = next!=='watch';
   $('loganview').hidden    = next!=='logan';
   $('mariaview').hidden    = next!=='maria';
+  $('paulview').hidden     = next!=='paul';
+  $('anomhistview').hidden = next!=='anomhist';
   $('scanview').hidden     = next!=='scan';
   $('histview').hidden     = next!=='hist';
   $('sessionsview').hidden = next!=='sessions';
@@ -35,6 +38,8 @@ function setView(next){
   $('nav-watch').setAttribute('aria-pressed', next==='watch');
   $('nav-logan').setAttribute('aria-pressed', next==='logan');
   $('nav-maria').setAttribute('aria-pressed', next==='maria');
+  $('nav-paul').setAttribute('aria-pressed', next==='paul');
+  $('nav-anomhist').setAttribute('aria-pressed', next==='anomhist');
   $('nav-scan').setAttribute('aria-pressed', next==='scan');
   $('nav-hist').setAttribute('aria-pressed', next==='hist');
   $('nav-sessions').setAttribute('aria-pressed', next==='sessions');
@@ -48,6 +53,8 @@ function setView(next){
   if(next==='watch'){ renderWatch(); scanWatch(); }
   else if(next==='logan'){ lgRender(); $('lg-text').focus(); }
   else if(next==='maria'){ mrRender(); $('mr-text').focus(); }
+  else if(next==='paul'){ plRender(); $('pl-text').focus(); }
+  else if(next==='anomhist'){ renderAnomHistory(); }
   else if(next==='cloud'){ cloudRender(); }
   else if(next==='scan'){ buildScanControls(); renderScan(scanRows.length); }
   else if(next==='hist'){ buildHistScope(); buildHistory(); }

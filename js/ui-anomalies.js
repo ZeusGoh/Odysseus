@@ -152,8 +152,8 @@ function coilTitle(e){
 }
 
 function renderAnomPanels(){
-  renderAnomTrack();
-  renderAnomLog();
+  // the track record and the flag log moved to Anomaly History; this view keeps
+  // the live sweep and the coiled watch, and renders only those
   renderCoiled();
   const cs = anomCoiledStats(anomalies);
   const coilNote = $('coilnote');
@@ -172,8 +172,22 @@ function renderAnomPanels(){
       : 'Nothing coiled yet. Compression is read off range (ATR) rather than the stochastic, '+
         'which normalises range away and cannot see compression at all.';
   }
+}
+
+
+/*  The track record and the flag log moved to the Anomaly History view; the
+    Anomaly view keeps the live sweep and the coiled watch. Two surfaces, two
+    render entry points, one log behind both.                                */
+function renderAnomHistory(){
+  renderAnomTrack();
+  renderAnomLog();
+  const el = $('ah-count');
+  if(el){
+    const moves = anomalies.filter(e=>e.kind!=='coil').length;
+    el.textContent = moves ? moves+' flag'+(moves===1?'':'s')+' logged' : 'nothing logged yet';
+  }
   const note = $('anomnote');
-  if(!note) return;
+  if(!note) return;   // the count above must not depend on this node existing
   const s = anomStats(anomalies);
   note.textContent =
     s.settled+' of '+s.total+' flags have at least one settled checkpoint. Held/faded/reversed is '+

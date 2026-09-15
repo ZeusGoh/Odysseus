@@ -26,6 +26,7 @@ const CLOUD_KEYS = [
   {k:'vl.journal.cfg.v1', label:'Journal settings',    secret:false},
   {k:'vl.logan.chat.v1',  label:"Logan's memory",      secret:false},
   {k:'vl.maria.chat.v1',  label:"Maria's memory",      secret:false},
+  {k:'vl.paul.chat.v1',   label:"Paul's memory",       secret:false},
   {k:'vl.news.v1',        label:'News settings',       secret:false},
   /*  The anomaly log syncs for the same reason the journal does: it is a record being built up
       over weeks toward a sample worth reading, and a record that only exists on whichever

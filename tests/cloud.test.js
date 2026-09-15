@@ -53,6 +53,10 @@ suite('CLOUD_KEYS — caches and secrets');
   const keys = CLOUD_KEYS.map(e=>e.k);
   check('the journal syncs', keys.includes('vl.journal.v1'), true);
   check("Logan's memory syncs", keys.includes('vl.logan.chat.v1'), true);
+  /*  The anomaly log is a record built up over weeks toward a readable sample — one that
+      only exists on whichever machine ran the scan never gets there.                     */
+  check('the anomaly log syncs', keys.includes('vl.news.anomalies.v1'), true);
+  check('and is not treated as a credential', CLOUD_KEYS.find(e=>e.k==='vl.news.anomalies.v1').secret, false);
   check('the coin-name cache never leaves the machine', keys.includes('vl.coins.v2'), false);
   check('the why cache never leaves the machine', keys.includes('vl.why.v1'), false);
 

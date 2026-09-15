@@ -2,6 +2,15 @@
    Loaded last, so everything it touches is already defined.
    part of Odysseus */
 
+/* ---------- nav menu ---------- */
+$('navbtn').onclick = e=>{ e.stopPropagation(); navOpen(); };
+// click anywhere else, or Escape, closes it — the panel overlays the page, so leaving
+// it open while you work on what is underneath is never what you meant
+document.addEventListener('click', e=>{
+  if(!$('navpanel').hidden && !(e.target.closest && e.target.closest('.navwrap'))) navOpen(false);
+});
+addEventListener('keydown', e=>{ if(e.key==='Escape') navOpen(false); });
+
 $('trackbtn').onclick = ()=>{
   if(watch.includes(active)) removeWatch(active);
   else addWatch(active);
@@ -37,6 +46,7 @@ $('a-test').onclick = async ()=>{
 };
 $('nav-hist').onclick  = ()=> setView('hist');
 $('h-run').onclick     = buildHistory;
+$('nav-sessions').onclick = ()=> setView('sessions');
 
 /* ---------- journal ---------- */
 $('nav-journal').onclick = ()=> setView('journal');
@@ -52,8 +62,20 @@ $('j-frame').addEventListener('change', jUpdateVerdictPreview);
 $('j-entrytime').addEventListener('change', jUpdateVerdictPreview);
 $('j-entry').addEventListener('input', jFillSuggestedSize);
 $('j-inval').addEventListener('input', jFillSuggestedSize);
-$('j-account').addEventListener('change', ()=>{ jCfg.account = parseFloat($('j-account').value)||jCfg.account; jSaveCfg(); });
-$('j-riskpct').addEventListener('change', ()=>{ jCfg.riskPct = parseFloat($('j-riskpct').value)||jCfg.riskPct; jSaveCfg(); });
+/*  The account, the percentage and the dollar amount are one setting wearing
+    three hats. Editing any of them re-derives the others and re-states the
+    working, so the panel can never show a risk it is not actually using.     */
+$('j-account').addEventListener('input', ()=>{ jSyncRisk('pct'); });
+$('j-riskpct').addEventListener('input', ()=>{ jSyncRisk('pct'); });
+$('j-riskusd').addEventListener('input', ()=>{ jSyncRisk('usd'); });
+['j-account','j-riskpct','j-riskusd'].forEach(id=>{
+  $(id).addEventListener('change', ()=>{
+    jCfg.account = parseFloat($('j-account').value) || jCfg.account;
+    jCfg.riskPct = parseFloat($('j-riskpct').value) || jCfg.riskPct;
+    jCfg.riskUsd = parseFloat($('j-riskusd').value) || jCfg.riskUsd;
+    jSaveCfg();
+  });
+});
 // one delegated listener per table rather than re-binding on every render
 $('j-open-rows').addEventListener('click', e=>{
   const b = e.target.closest('button'); if(!b) return;
@@ -66,11 +88,22 @@ $('j-open-rows').addEventListener('click', e=>{
 $('j-closed-rows').addEventListener('click', e=>{
   const b = e.target.closest('button'); if(!b) return;
   const id = b.dataset.id;
+  if(b.classList.contains('jmore')){
+    const det = $('jd-'+id);
+    if(det){
+      det.hidden = !det.hidden;
+      b.setAttribute('aria-expanded', String(!det.hidden));
+      b.textContent = det.hidden ? 'Details' : 'Hide';
+    }
+    return;   // a re-render here would collapse the panel that was just opened
+  }
   if(b.classList.contains('jreopen')){ jReopen(id); renderJournal(); }
   else if(b.classList.contains('jdel')){ jDelete(id); renderJournal(); }
 });
 $('j-account').value = jCfg.account;
 $('j-riskpct').value = jCfg.riskPct;
+$('j-riskusd').value = jCfg.riskUsd;
+jRenderSizeWork();
 renderJournal();
 $('nav-logan').onclick = ()=> setView('logan');
 $('lg-offbtn').onclick = ()=>{
@@ -107,13 +140,13 @@ $('lg-save').onclick = ()=>{
   /*  The two providers' transcripts are not interchangeable, so switching
       backends drops the replayable context while leaving the visible chat
       alone. Logan starts fresh; the conversation stays on screen.          */
-  if(lgCfg.provider !== wasProvider){ lgApi = []; lgSaveChat(); }
+  if(lgCfg.provider !== wasProvider){ Object.values(AGENTS).forEach(ag=>{ ag.api = []; agSaveChat(ag); }); }
   $('lg-keynote').textContent = ok
     ? 'Saved in this browser. Sent only to '+lgProviderHost()+'.'
     : 'This preview cannot save settings, so the key lasts only for this session.';
   $('lg-settings').hidden = true;
-  lgSetMode();
-  lgRender();   // the empty-state copy differs online vs offline; refresh it now, not just the mode badge
+  // the empty-state copy differs online vs offline, and both agents show it
+  Object.values(AGENTS).forEach(ag=>{ agSetMode(ag); agRender(ag); });
 };
 $('lg-brief').onclick = async ()=>{
   const text = briefing();
@@ -127,6 +160,23 @@ $('lg-brief').onclick = async ()=>{
   }
   setTimeout(()=>{ $('lg-brief').textContent = 'Copy briefing'; }, 1800);
 };
+/* ---------- Maria ---------- */
+$('nav-maria').onclick = ()=> setView('maria');
+$('mr-send').onclick = ()=>{ const t=$('mr-text'); mrSend(t.value); t.value=''; t.style.height='auto'; };
+$('mr-text').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey){
+    e.preventDefault();
+    const t=$('mr-text'); mrSend(t.value); t.value=''; t.style.height='auto';
+  }
+});
+$('mr-text').addEventListener('input', e=>{
+  e.target.style.height='auto';
+  e.target.style.height = Math.min(130, e.target.scrollHeight)+'px';
+});
+$('mr-clear').onclick = ()=>{ mrForgetChat(); mrRender(); };
+// both agents share one Connection panel, which lives in Logan's view
+$('mr-setup').onclick = ()=>{ setView('logan'); $('lg-settings').hidden = false; };
+
 $('nav-terminal').onclick = ()=> setView('terminal');
 $('nav-watch').onclick    = ()=> setView('watch');
 

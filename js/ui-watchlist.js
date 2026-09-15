@@ -1,14 +1,31 @@
 /* ui-watchlist.js — Watchlist view.
    part of Odysseus */
 
+/* ---------- nav menu ---------- */
+// what the collapsed nav trigger calls each view — it is the only place the current
+// view is named on screen now that the buttons live in a dropdown
+const VIEW_LABELS = {terminal:'Terminal', watch:'Watchlist', scan:'Scanner', news:'Anomaly',
+                     alerts:'Alerts', hist:'History', sessions:'Sessions',
+                     journal:'Journal', logan:'Logan', maria:'Maria', cloud:'Cloud'};
+
+// no argument toggles; true/false forces
+function navOpen(on){
+  const panel = $('navpanel'), btn = $('navbtn');
+  const show = on === undefined ? panel.hidden : on;
+  panel.hidden = !show;
+  btn.setAttribute('aria-expanded', show);
+}
+
 /* ---------- watchlist ---------- */
 function setView(next){
   view = next;
   $('terminalview').hidden = next!=='terminal';
   $('watchview').hidden    = next!=='watch';
   $('loganview').hidden    = next!=='logan';
+  $('mariaview').hidden    = next!=='maria';
   $('scanview').hidden     = next!=='scan';
   $('histview').hidden     = next!=='hist';
+  $('sessionsview').hidden = next!=='sessions';
   $('alertsview').hidden   = next!=='alerts';
   $('newsview').hidden     = next!=='news';
   $('journalview').hidden  = next!=='journal';
@@ -17,20 +34,27 @@ function setView(next){
   $('nav-terminal').setAttribute('aria-pressed', next==='terminal');
   $('nav-watch').setAttribute('aria-pressed', next==='watch');
   $('nav-logan').setAttribute('aria-pressed', next==='logan');
+  $('nav-maria').setAttribute('aria-pressed', next==='maria');
   $('nav-scan').setAttribute('aria-pressed', next==='scan');
   $('nav-hist').setAttribute('aria-pressed', next==='hist');
+  $('nav-sessions').setAttribute('aria-pressed', next==='sessions');
   $('nav-alerts').setAttribute('aria-pressed', next==='alerts');
   $('nav-news').setAttribute('aria-pressed', next==='news');
   $('nav-journal').setAttribute('aria-pressed', next==='journal');
   $('nav-cloud').setAttribute('aria-pressed', next==='cloud');
   $('nav-scan').setAttribute('aria-pressed', next==='scan');
+  $('navlabel').textContent = VIEW_LABELS[next] || next;
+  navOpen(false);                  // picking a view is the end of the menu's job
   if(next==='watch'){ renderWatch(); scanWatch(); }
   else if(next==='logan'){ lgRender(); $('lg-text').focus(); }
+  else if(next==='maria'){ mrRender(); $('mr-text').focus(); }
   else if(next==='cloud'){ cloudRender(); }
   else if(next==='scan'){ buildScanControls(); renderScan(scanRows.length); }
   else if(next==='hist'){ buildHistScope(); buildHistory(); }
+  else if(next==='sessions'){ renderSessions(); }
   else if(next==='alerts'){ buildAlertControls(); renderAlertLog(); }
-  else if(next==='news'){ buildNewsControls(); renderNews(); if(!newsRan) newsScan(); }
+  else if(next==='news'){ buildNewsControls(); renderNews(); renderAnomPanels();
+                          if(!newsRan) newsScan(); }
   else if(next==='journal'){ renderJournal(); jRefreshPrices(); }
   else if(next==='scan'){ /* results persist between visits */ }
   else { buildCharts(); }          // charts need a visible container to size to

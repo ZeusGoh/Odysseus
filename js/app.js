@@ -120,6 +120,7 @@ async function load(){
     } else {
       lightUpdate(); nudgeCharts(); tick();
     }
+    if(view==='sessions') renderSessions();   // cheap: only re-derives from the 1H candles already held
   }catch(e){
     if(sym !== active) return;
     if(!data[sym]) $('rows').innerHTML = '';

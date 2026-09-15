@@ -23,17 +23,30 @@
 
 <div class="rail">
   <span class="brand">ODYSSEUS</span>
-  <nav class="nav">
-    <button id="nav-terminal" aria-pressed="true">Terminal</button>
-    <button id="nav-watch" aria-pressed="false">Watchlist <span class="cnt" id="watch-count">0</span></button>
-    <button id="nav-scan" aria-pressed="false">Scanner</button>
-    <button id="nav-news" aria-pressed="false">News</button>
-    <button id="nav-alerts" aria-pressed="false">Alerts <span class="cnt" id="alert-dot">off</span></button>
-    <button id="nav-hist" aria-pressed="false">History</button>
-    <button id="nav-journal" aria-pressed="false">Journal <span class="cnt" id="journal-count">0</span></button>
-    <button id="nav-logan" aria-pressed="false">Logan</button>
-    <button id="nav-cloud" aria-pressed="false">Cloud <span class="cnt" id="cloud-dot">local</span></button>
-  </nav>
+  <div class="navwrap">
+    <button class="navtrigger" id="navbtn" aria-haspopup="true" aria-expanded="false">
+      <span class="burger" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="navnow" id="navlabel">Terminal</span>
+    </button>
+    <nav class="navpanel" id="navpanel" hidden>
+      <p class="navgrp">Market</p>
+      <button id="nav-terminal" aria-pressed="true">Terminal</button>
+      <button id="nav-watch" aria-pressed="false">Watchlist <span class="cnt" id="watch-count">0</span></button>
+      <button id="nav-scan" aria-pressed="false">Scanner</button>
+      <p class="navgrp">Research</p>
+      <button id="nav-news" aria-pressed="false">Anomaly</button>
+      <button id="nav-sessions" aria-pressed="false">Sessions</button>
+      <button id="nav-hist" aria-pressed="false">History</button>
+      <p class="navgrp">Trading</p>
+      <button id="nav-journal" aria-pressed="false">Journal <span class="cnt" id="journal-count">0</span></button>
+      <button id="nav-alerts" aria-pressed="false">Alerts <span class="cnt" id="alert-dot">off</span></button>
+      <p class="navgrp">Agents</p>
+      <button id="nav-logan" aria-pressed="false">Logan</button>
+      <button id="nav-maria" aria-pressed="false">Maria</button>
+      <p class="navgrp">Account</p>
+      <button id="nav-cloud" aria-pressed="false">Cloud <span class="cnt" id="cloud-dot">local</span></button>
+    </nav>
+  </div>
   <div class="symwrap">
     <div class="symtabs" id="symlist"></div>
     <input type="text" id="symsearch" placeholder="Search any coin" maxlength="14" autocomplete="off">
@@ -281,6 +294,28 @@
     <p class="wnote" id="hnote"></p>
   </section>
 
+  <section id="sessionsview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">Sessions</h1>
+        <p class="wsub" id="sesssub">Asia consolidates, London expands, New York confirms — read on the 1H tape.</p>
+      </div>
+    </div>
+
+    <section class="mod">
+      <header><h2>Today</h2><p>live read on the current UTC session</p></header>
+      <div id="sess-live" class="sesslive"><div class="loading">Load a coin, then check back.</div></div>
+    </section>
+
+    <section class="mod">
+      <header><h2>The sequence</h2><p>how often each stage has actually played out, on the history currently loaded</p></header>
+      <div class="mrow sesshead"><span>Stage</span><span>Days</span><span>Rate</span></div>
+      <div id="sess-stats"><div class="loading">Load a coin, then check back.</div></div>
+      <p class="wnote" id="sess-sweep"></p>
+    </section>
+    <p class="wnote" id="sessnote"></p>
+  </section>
+
   <section id="journalview" hidden>
     <div class="wtop">
       <div>
@@ -335,7 +370,7 @@
     </section>
 
     <section class="mod">
-      <header><h2>Sizing</h2><p>account × risk% ÷ (entry − invalidation) — used only to suggest a size when you log a trade</p></header>
+      <header><h2>Sizing</h2><p>risk ÷ stop distance — set the risk in dollars, or as a percentage of the account</p></header>
       <div class="jcfg">
         <label>Account size (USD)
           <input type="text" id="j-account" inputmode="decimal" autocomplete="off">
@@ -343,7 +378,11 @@
         <label>Risk per trade (%)
           <input type="text" id="j-riskpct" inputmode="decimal" autocomplete="off">
         </label>
+        <label>Risk per trade (USD)
+          <input type="text" id="j-riskusd" inputmode="decimal" autocomplete="off">
+        </label>
       </div>
+      <p class="jsizework" id="j-sizework"></p>
     </section>
 
     <section class="mod">
@@ -447,6 +486,35 @@
     </section>
   </section>
 
+  <section id="mariaview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">Maria</h1>
+        <p class="wsub">Reads your closed trades — the record, the notes, and the frames you took them on.</p>
+      </div>
+      <div class="lgtools">
+        <span class="lgmode" id="mr-mode"></span>
+        <button id="mr-clear" class="ghost">Clear</button>
+        <button id="mr-setup" class="ghost">Connection</button>
+      </div>
+    </div>
+
+    <div class="lgoff" id="mr-offline" hidden>
+      <b>Maria is not connected.</b> She has no offline mode: reading a record is judgement, and a
+      deterministic version of that would just be the Patterns panel with a name on it. Add a key under
+      <b>Connection</b> — Gemini and OpenRouter are both free, and both agents share the same one.
+    </div>
+
+    <section class="mod lgchat">
+      <div id="mr-log" class="lglog"></div>
+      <div class="lgquick" id="mr-quick"></div>
+      <div class="lginput">
+        <textarea id="mr-text" rows="1" placeholder="Ask Maria what your record shows"></textarea>
+        <button id="mr-send">Send</button>
+      </div>
+    </section>
+  </section>
+
   <section id="cloudview" hidden>
     <div class="wtop">
       <div>
@@ -522,7 +590,7 @@
   <section id="newsview" hidden>
     <div class="wtop">
       <div>
-        <h1 class="wtitle">News</h1>
+        <h1 class="wtitle">Anomaly</h1>
         <p class="wsub" id="nvsub">Finds what moved abnormally, then explains why it moved.</p>
       </div>
       <div class="lgtools">
@@ -550,6 +618,34 @@
       <div id="nvrows"><div class="loading">Hit Scan movers to sweep the board.</div></div>
     </section>
     <p class="wnote" id="nvnote"></p>
+
+    <section class="mod">
+      <header><h2>Detector track record</h2><p>does a flag mean anything? — % that held, by what the detector called the move</p></header>
+      <div class="mrow anomhead">
+        <span>Classification</span><span>+1h held</span><span>+4h held</span><span>+24h held</span>
+      </div>
+      <div id="anomrows"><div class="loading">Nothing logged yet.</div></div>
+    </section>
+
+    <section class="mod">
+      <header><h2>Flag log</h2><p>every abnormal move written down at the moment it fired</p></header>
+      <div class="mrow anomloghead">
+        <span>Coin</span><span>Move</span><span>Excess</span><span>Read</span>
+        <span>+1h</span><span>+4h</span><span>+24h</span>
+      </div>
+      <div id="anomlog"><div class="loading">No flags logged yet.</div></div>
+    </section>
+    <p class="wnote" id="anomnote"></p>
+
+    <section class="mod">
+      <header><h2>Coiled</h2><p>compressed range, quiet volume, open interest building — flagged before the move, scored on whether it expanded</p></header>
+      <div class="mrow coilhead">
+        <span>Coin</span><span>Range</span><span>Volume</span><span>OI</span><span>Signals</span>
+        <span>+1h</span><span>+4h</span><span>+24h</span>
+      </div>
+      <div id="coilrows"><div class="loading">Nothing coiled yet.</div></div>
+    </section>
+    <p class="wnote" id="coilnote"></p>
   </section>
 
 </div>
@@ -562,6 +658,8 @@
 <script src="js/storage.js"></script>
 <script src="js/state.js"></script>
 <script src="js/backtest.js"></script>
+<script src="js/sessions.js"></script>
+<script src="js/anomalies.js"></script>
 <script src="js/btc-reference.js"></script>
 <script src="js/verdict.js"></script>
 <script src="js/scanner.js"></script>
@@ -573,7 +671,11 @@
 <script src="js/ui-symbols.js"></script>
 <script src="js/ui-watchlist.js"></script>
 <script src="js/ui-history.js"></script>
+<script src="js/ui-sessions.js"></script>
+<script src="js/ui-anomalies.js"></script>
 <script src="js/journal.js"></script>
+<!-- after journal.js: Maria's groupers reference its helpers at load time -->
+<script src="js/maria.js"></script>
 <script src="js/app.js"></script>
 <script src="js/boot.js"></script>
 </body>

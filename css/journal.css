@@ -99,3 +99,35 @@
   .jstat b.up{color:var(--up)} .jstat b.down{color:var(--down)}
   .jstat span{font-size:10px;color:var(--mute);letter-spacing:.02em}
   @media (max-width:700px){ .jstat{border-right:0;border-bottom:1px solid var(--edge)} }
+
+  /* ---- sizing, with its working shown ---- */
+  .jsizework{padding:0 16px 14px;margin:0;font-size:11.5px;line-height:1.6;color:var(--mute);
+        font-family:var(--mono)}
+  .jsizework.warn{color:var(--pend)}
+
+  /* ---- closed-trade detail ---- */
+  .jactions .jmore{padding:3px 8px;border:1px solid var(--edge);border-radius:4px;
+        font-family:var(--mono);font-size:10px;color:var(--mute)}
+  .jactions .jmore:hover{color:var(--ink);background:var(--raise)}
+  .jdetail{padding:0 16px 16px;border-bottom:1px solid var(--edge)}
+  .jdetail[hidden]{display:none}
+  .jdetail-in{background:var(--void);border:1px solid var(--edge);border-radius:6px;padding:14px 16px;
+        display:flex;flex-direction:column;gap:14px}
+
+  .jdfacts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+        gap:10px 16px;margin:0}
+  .jdfact dt{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;margin:0 0 2px}
+  .jdfact dd{margin:0;font-family:var(--mono);font-size:12px;color:var(--ink)}
+
+  .jdblock h4{margin:0 0 7px;font-size:11px;font-weight:500;color:var(--ink);
+        text-transform:uppercase;letter-spacing:.05em}
+  .jdnote{margin:0;font-size:11.5px;line-height:1.65;color:var(--mute)}
+
+  .jdfrow{display:grid;grid-template-columns:52px 96px 62px 88px 74px minmax(0,1fr);
+        gap:10px;align-items:center;padding:5px 0;font-family:var(--mono);font-size:11px;
+        border-bottom:1px solid var(--edge)}
+  .jdfrow:last-of-type{border-bottom:0}
+  .jdfhead{color:var(--dim);font-size:9.5px;text-transform:uppercase;letter-spacing:.05em}
+  .jdfframe{color:var(--ink);font-weight:500}
+  .jdzone{font-size:10px}
+  .jdsig{color:var(--mute)}

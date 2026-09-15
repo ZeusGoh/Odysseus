@@ -11,8 +11,16 @@ const JOURNAL_KEY = 'vl.journal.v1', JCFG_KEY = 'vl.journal.cfg.v1';
 let journal = (()=>{ try{ return JSON.parse(localStorage.getItem(JOURNAL_KEY)||'[]'); }
                       catch(e){ return []; } })();
 
-const jCfg = Object.assign({account:1000, riskPct:1},
-  (()=>{ try{ return JSON.parse(localStorage.getItem(JCFG_KEY)||'{}'); }catch(e){ return {}; } })());
+const jCfg = (()=>{
+  let c;
+  try{ c = JSON.parse(localStorage.getItem(JCFG_KEY)||'{}'); }catch(e){ c = {}; }
+  c = Object.assign({account:1000, riskPct:1}, c);
+  /*  Older saves predate the dollar field. Deriving it once from the pair they
+      did have keeps the two boxes agreeing from the first render, rather than
+      showing a blank that silently sizes nothing.                            */
+  if(!(c.riskUsd > 0)) c.riskUsd = c.account * (c.riskPct/100);
+  return c;
+})();
 
 function jSave(){ return vlPut(JOURNAL_KEY, JSON.stringify(journal)); }
 function jSaveCfg(){ return vlPut(JCFG_KEY, JSON.stringify(jCfg)); }
@@ -24,10 +32,57 @@ function jSaveCfg(){ return vlPut(JCFG_KEY, JSON.stringify(jCfg)); }
    working, exactly like the backtest's own convention.                      */
 function jRiskUnit(t){ return Math.abs(t.entryPrice - t.invalidation); }
 
+/*  Sizing, expressed the way the trade is actually thought about.
+
+    The old version took account size and a risk percentage and handed back a
+    coin quantity. The arithmetic was right and the result was still useless:
+    it never said what it had risked, so a stale account value silently became
+    a wrong size. Risking $15 over a 15-point stop is one coin; if the box says
+    0.003 instead, the only way to find out why was to go and read the code.
+
+    So the risk AMOUNT is the input now, and everything else is shown as
+    working. The percentage is kept as a way of arriving at that amount, not as
+    the thing the size is computed from.                                      */
+
+// the dollars on the line if the stop is hit — from a percentage of the account
+function jRiskAmount(account, riskPct){
+  if(!(account > 0) || !(riskPct > 0)) return null;
+  return account * (riskPct/100);
+}
+
+// ...and back the other way, so typing either box keeps the pair honest
+function jRiskPctOf(account, riskUsd){
+  if(!(account > 0) || !(riskUsd > 0)) return null;
+  return riskUsd / account * 100;
+}
+
+/*  The whole calculation, returned as its parts rather than one number, so the
+    panel can show its working and a wrong input is visible on the way past.
+
+    `leverage` is notional over account: what the position implies on a perp,
+    which is the number that decides whether a size is survivable. It is null
+    without an account to measure against — a leverage figure invented from a
+    missing account would be worse than none.                                 */
+function jSizePlan(entry, invalidation, riskUsd, account){
+  const stop = Math.abs(entry - invalidation);
+  if(!(stop > 0) || !(riskUsd > 0) || !isFinite(entry) || entry <= 0) return null;
+  const size = riskUsd / stop;
+  const notional = size * entry;
+  return {
+    stop, riskUsd, size, notional,
+    stopPct: stop / entry * 100,
+    leverage: account > 0 ? notional / account : null
+  };
+}
+
+/*  Kept at its original signature because the tests and older callers speak it:
+    account and percentage in, coin quantity out. It now routes through the same
+    path as the panel, so the two can never drift apart.                       */
 function jSuggestSize(entry, invalidation, account, riskPct){
-  const unit = Math.abs(entry - invalidation);
-  if(!(unit > 0) || !(account > 0) || !(riskPct > 0)) return null;
-  return (account * (riskPct/100)) / unit;
+  const risk = jRiskAmount(account, riskPct);
+  if(risk == null) return null;
+  const plan = jSizePlan(entry, invalidation, risk, account);
+  return plan ? plan.size : null;
 }
 
 function jR(t, atPrice){
@@ -63,6 +118,67 @@ function jZoneAt(sym, frame, atTime){
   return zoneOf((k+d)/2);
 }
 
+/*  The five-frame stochastic picture at the moment of entry.
+
+    Until now a trade recorded only the verdict on the one frame it was taken
+    on. That is enough to grade the entry and useless for the question actually
+    worth asking later — was the daily agreeing with the 4H, was this taken
+    against the weekly — because the answer was never written down. The panel
+    shows all five live; none of it survived the trade being logged.
+
+    Reconstructed at the entry timestamp from the same candle arrays jZoneAt
+    walks, so a trade logged days later still records the condition it was
+    actually taken in rather than today's.                                   */
+function jFrameAt(sym, frame, atTime, weight){
+  const sd = stoch[sym] && stoch[sym][frame];
+  if(!sd || !sd.candles || !sd.candles.length) return null;
+  let idx = -1;
+  for(let i=0;i<sd.candles.length;i++){
+    if(sd.candles[i].t <= atTime) idx = i; else break;
+  }
+  if(idx < 0) return null;
+  const k = sd.k[idx], d = sd.d[idx];
+  if(k == null || d == null) return null;
+
+  /*  Cross type and age live in `states`, which only ever describes the latest
+      bar. Carrying it onto a backdated snapshot would be inventing history, so
+      it is attached only when the entry really does fall on the current bar.  */
+  const live = idx === sd.candles.length - 1;
+  const st = live && states[sym] ? states[sym][frame] : null;
+
+  return {
+    frame, weight: weight == null ? null : weight,
+    K: +k.toFixed(1), D: +d.toFixed(1), spread: +(k - d).toFixed(1),
+    zone: zoneOf((k + d) / 2),
+    side: k >= d ? 'bull' : 'bear',
+    signal:   st ? st.type : null,
+    settled:  st ? !st.pending : null,
+    barsAgo:  st && st.barsAgo != null ? st.barsAgo : null,
+    barTime: sd.candles[idx].t
+  };
+}
+
+function jFramesAt(sym, atTime){
+  const out = TFS.map(tf => jFrameAt(sym, tf.key, atTime, tf.weight)).filter(Boolean);
+  return out.length ? out : null;
+}
+
+/*  How much of the board agreed with the direction taken, weighted the way the
+    terminal weights frames. +1 is every frame leaning the trade's way, -1 is
+    every frame against it. This is the number that makes "I keep taking 1H
+    longs while the weekly is rolling over" answerable.                       */
+function jFramesAlignment(frames, direction){
+  if(!frames || !frames.length) return null;
+  let agree = 0, total = 0;
+  for(const f of frames){
+    const w = f.weight != null ? f.weight : 1;
+    total += w;
+    const bull = f.side === 'bull';
+    agree += w * ((direction === 'short' ? !bull : bull) ? 1 : -1);
+  }
+  return total > 0 ? +(agree / total).toFixed(3) : null;
+}
+
 function jLastPrice(sym){
   for(const tf of TFS){
     const c = data[sym] && data[sym][tf.key];
@@ -86,6 +202,9 @@ function jAdd(input){
     invalidation: input.invalidation, size: input.size,
     wave: (input.wave||'').trim(), notes: (input.notes||'').trim(),
     verdict: input.verdict || null,
+    // the whole board at entry, not just the frame traded — see jFramesAt
+    frames: input.frames || null,
+    alignment: input.alignment != null ? input.alignment : null,
     status: 'open', exitPrice: null, exitTime: null, closeNote: ''
   };
   journal = [t, ...journal];
@@ -331,10 +450,119 @@ function renderJournalClosed(){
       '<span class="jnum '+(pct>0?'up':pct<0?'down':'')+'">'+jFmtPct(pct)+'</span>'+
       '<span class="jage" title="Entered '+jEsc(jFullTime(t.entryTime))+' — closed '+jEsc(jFullTime(t.exitTime))+'">'+
         new Date(t.exitTime).toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</span>'+
-      '<span class="jactions"><button class="jreopen" data-id="'+t.id+'">Reopen</button>'+
+      '<span class="jactions"><button class="jmore" data-id="'+t.id+'" aria-expanded="false">Details</button>'+
+        '<button class="jreopen" data-id="'+t.id+'">Reopen</button>'+
         '<button class="jdel x" data-id="'+t.id+'" title="delete">×</button></span>';
     el.appendChild(row);
+
+    /*  Rendered up front rather than on demand: the content is small, and
+        building it lazily would mean re-deriving it every toggle for no gain
+        while making the open/closed state something to track separately.    */
+    const det = document.createElement('div');
+    det.className = 'jdetail';
+    det.id = 'jd-' + t.id;
+    det.hidden = true;
+    det.innerHTML = jDetailHtml(t);
+    el.appendChild(det);
   });
+}
+
+/* ---------- the detail behind a closed trade ----------
+   The row carries the numbers; everything that explains them — what you wrote
+   at the time, when you actually took it, and what the rest of the board was
+   doing — was being stored and never shown. This is that.                    */
+
+function jHeldFor(t){
+  if(t.entryTime == null || t.exitTime == null) return '—';
+  const ms = t.exitTime - t.entryTime;
+  if(!(ms > 0)) return '—';
+  const h = ms / 36e5;
+  if(h < 1)  return Math.round(ms/6e4) + ' min';
+  if(h < 48) return h.toFixed(1) + ' h';
+  return (h/24).toFixed(1) + ' days';
+}
+
+// +1 every frame with the trade, -1 every frame against it
+function jAlignWord(a){
+  if(a == null) return null;
+  if(a >=  0.75) return 'the whole board agreed';
+  if(a >=  0.25) return 'most of the board agreed';
+  if(a >  -0.25) return 'the board was split';
+  if(a >  -0.75) return 'most of the board disagreed';
+  return 'the whole board disagreed';
+}
+
+function jFramesTable(t){
+  if(!t.frames || !t.frames.length){
+    return '<p class="jdnote">No multi-frame snapshot was saved for this trade — it was logged '+
+           'before the app started recording the whole board at entry. Trades logged from now on '+
+           'carry all five frames.</p>';
+  }
+  const rows = t.frames.map(f=>{
+    const withTrade = (t.direction === 'short') ? (f.side === 'bear') : (f.side === 'bull');
+    return '<div class="jdfrow">'+
+      '<span class="jdfframe">'+jEsc(f.frame)+'</span>'+
+      '<span class="jnum">'+f.K.toFixed(1)+' / '+f.D.toFixed(1)+'</span>'+
+      '<span class="jnum '+(f.spread>0?'up':f.spread<0?'down':'')+'">'+
+        (f.spread>0?'+':'')+f.spread.toFixed(1)+'</span>'+
+      '<span class="jdzone z-'+jEsc(String(f.zone))+'">'+jEsc(String(f.zone))+'</span>'+
+      '<span class="'+(withTrade?'up':'down')+'">'+(f.side==='bull'?'bull':'bear')+
+        (withTrade?' ✓':' ✗')+'</span>'+
+      '<span class="jdsig">'+(f.signal ? jEsc(f.signal)+(f.settled===false?' (unsettled)':'') : '—')+'</span>'+
+    '</div>';
+  }).join('');
+  const word = jAlignWord(t.alignment);
+  const head = '<div class="jdfrow jdfhead"><span>Frame</span><span>%K / %D</span><span>Spread</span>'+
+               '<span>Zone</span><span>Lean</span><span>Cross</span></div>';
+  return head + rows + (word
+    ? '<p class="jdnote">At entry '+word+' — alignment '+
+      (t.alignment>0?'+':'')+t.alignment.toFixed(2)+', weighted the way the terminal weights frames.</p>'
+    : '');
+}
+
+function jDetailHtml(t){
+  const r = jR(t, t.exitPrice), pct = jPct(t, t.exitPrice);
+  const unit = jRiskUnit(t);
+  const risked = (t.size != null && unit > 0) ? t.size * unit : null;
+  const notional = (t.size != null) ? t.size * t.entryPrice : null;
+
+  const facts = [
+    ['Entered',  jFullTime(t.entryTime)],
+    ['Closed',   jFullTime(t.exitTime)],
+    ['Held',     jHeldFor(t)],
+    ['Frame',    t.frame],
+    ['Direction', t.direction],
+    ['Entry',    fmtUsd(t.entryPrice)],
+    ['Stop',     fmtUsd(t.invalidation)],
+    ['Exit',     fmtUsd(t.exitPrice)],
+    ['Size',     t.size != null ? (+t.size).toLocaleString('en-US',{maximumFractionDigits:8}) : '—'],
+    ['Notional at entry', notional != null ? fmtUsd(notional) : '—'],
+    ['Risked',   risked != null ? fmtUsd(risked) : '—'],
+    ['Result',   jFmtR(r) + '  ·  ' + jFmtPct(pct)]
+  ].map(([k,v])=>'<div class="jdfact"><dt>'+jEsc(k)+'</dt><dd>'+jEsc(String(v))+'</dd></div>').join('');
+
+  const v = t.verdict;
+  const verdictBlock = v
+    ? '<div class="jdblock"><h4>Grade at entry — '+jEsc(String(v.grade))+'</h4>'+
+      (v.summary ? '<p class="jdnote">'+jEsc(v.summary)+'</p>' : '')+
+      '<p class="jdnote">'+
+        (v.hitRate!=null ? 'Historical hit rate '+(v.hitRate*100).toFixed(0)+'%. ' : '')+
+        (v.zone!=null ? 'Zone at entry: '+jEsc(String(v.zone))+'. ' : '')+
+        (v.divergence ? 'Divergence was present. ' : '')+
+      '</p></div>'
+    : '<div class="jdblock"><h4>Grade at entry</h4><p class="jdnote">No verdict was captured — '+
+      'that coin\'s data was not loaded when the trade was logged.</p></div>';
+
+  const words = [];
+  if(t.wave)      words.push('<div class="jdblock"><h4>Wave</h4><p class="jdnote">'+jEsc(t.wave)+'</p></div>');
+  if(t.notes)     words.push('<div class="jdblock"><h4>Notes at entry</h4><p class="jdnote">'+jEsc(t.notes)+'</p></div>');
+  if(t.closeNote) words.push('<div class="jdblock"><h4>Note on closing</h4><p class="jdnote">'+jEsc(t.closeNote)+'</p></div>');
+
+  return '<div class="jdetail-in">'+
+    '<dl class="jdfacts">'+facts+'</dl>'+
+    '<div class="jdblock"><h4>Stochastics across frames, at entry</h4>'+jFramesTable(t)+'</div>'+
+    verdictBlock + words.join('') +
+  '</div>';
 }
 
 function renderJournalStats(){
@@ -465,17 +693,74 @@ function jOpenForm(prefill){
   $('j-notes').value = '';
   $('j-account').value = jCfg.account;
   $('j-riskpct').value = jCfg.riskPct;
+  $('j-riskusd').value = jCfg.riskUsd;
   $('j-form').hidden = false;
+  jRenderSizeWork();
   jUpdateVerdictPreview();
   $('j-sym').focus();
 }
 
+// trims a quantity to something readable without losing a small coin size
+function jNum(n, dp){
+  if(n == null || !isFinite(n)) return '—';
+  return n.toFixed(dp == null ? 6 : dp).replace(/\.?0+$/, '');
+}
+
+/*  The percentage and the dollar amount are two ways of saying the same thing,
+    so whichever one was typed drives the other. Without this the two boxes
+    disagree silently and the size follows whichever the code happened to read.  */
+function jSyncRisk(from){
+  const account = parseFloat($('j-account').value);
+  if(from === 'usd'){
+    const usd = parseFloat($('j-riskusd').value);
+    const pct = jRiskPctOf(account, usd);
+    if(pct != null) $('j-riskpct').value = jNum(pct, 3);
+  }else{
+    const pct = parseFloat($('j-riskpct').value);
+    const usd = jRiskAmount(account, pct);
+    if(usd != null) $('j-riskusd').value = jNum(usd, 2);
+  }
+  jFillSuggestedSize();
+}
+
+/*  Shows what the numbers on screen actually mean, every time they change.
+    The original panel filled in a quantity and said nothing else, so a size
+    computed from the wrong risk looked exactly like a size computed from the
+    right one. Stating the risk and the stop distance back makes a mistaken
+    input obvious at the moment it is made.                                   */
+function jRenderSizeWork(){
+  const el = $('j-sizework');
+  if(!el) return;
+  const entry = parseFloat($('j-entry').value), inval = parseFloat($('j-inval').value);
+  const riskUsd = parseFloat($('j-riskusd').value), account = parseFloat($('j-account').value);
+
+  if(!(riskUsd > 0)){ el.textContent = 'Set a risk amount to size a trade.'; el.className = 'jsizework'; return; }
+  if(!isFinite(entry) || !isFinite(inval)){
+    el.textContent = 'Risking '+fmtUsd(riskUsd)+' per trade. Enter a price and an invalidation to size one.';
+    el.className = 'jsizework';
+    return;
+  }
+  const p = jSizePlan(entry, inval, riskUsd, account);
+  if(!p){ el.textContent = 'Invalidation can’t equal entry — there is no stop distance to size against.';
+          el.className = 'jsizework warn'; return; }
+
+  let s = 'Risking '+fmtUsd(p.riskUsd)+' over a stop of '+jNum(p.stop, 6)+
+          ' ('+p.stopPct.toFixed(2)+'%) → size '+jNum(p.size)+
+          ' ≈ '+fmtUsd(p.notional)+' notional';
+  if(p.leverage != null) s += ' ≈ '+p.leverage.toFixed(2)+'× the account';
+  el.textContent = s + '.';
+  /*  Leverage is flagged, not blocked. The number is the user's to choose —
+      but a size that quietly needs 20× is worth seeing before it is taken.   */
+  el.className = 'jsizework' + (p.leverage != null && p.leverage > 10 ? ' warn' : '');
+}
+
 function jFillSuggestedSize(){
   const entry = parseFloat($('j-entry').value), inval = parseFloat($('j-inval').value);
-  const account = parseFloat($('j-account').value), riskPct = parseFloat($('j-riskpct').value);
+  const riskUsd = parseFloat($('j-riskusd').value), account = parseFloat($('j-account').value);
+  jRenderSizeWork();
   if(!isFinite(entry) || !isFinite(inval)) return;
-  const size = jSuggestSize(entry, inval, account, riskPct);
-  if(size != null && !$('j-size').value) $('j-size').value = size.toFixed(6).replace(/\.?0+$/,'');
+  const p = jSizePlan(entry, inval, riskUsd, account);
+  if(p && !$('j-size').value) $('j-size').value = jNum(p.size);
 }
 
 function jSaveForm(){
@@ -494,6 +779,7 @@ function jSaveForm(){
   }
   jCfg.account = parseFloat($('j-account').value) || jCfg.account;
   jCfg.riskPct = parseFloat($('j-riskpct').value) || jCfg.riskPct;
+  jCfg.riskUsd = parseFloat($('j-riskusd').value) || jCfg.riskUsd;
   jSaveCfg();
 
   const entryTime = jParseLocalInput($('j-entrytime').value);
@@ -501,10 +787,13 @@ function jSaveForm(){
   const verdict = (states[sym] && states[sym][frame]) ? assessTrade(sym, frame) : null;
   // zone is reconstructed at the logged time (see jZoneAt) rather than taken
   // from the live read, so a backdated entry still lands in the right bucket
-  const histZone = jZoneAt(sym, frame, entryTime != null ? entryTime : Date.now());
+  const at = entryTime != null ? entryTime : Date.now();
+  const histZone = jZoneAt(sym, frame, at);
+  const frames = jFramesAt(sym, at);
   jAdd({
     symbol: sym, frame, direction: jDir, entryPrice, entryTime, invalidation, size,
     wave: $('j-wave').value, notes: $('j-notes').value,
+    frames, alignment: jFramesAlignment(frames, jDir),
     // the fuller "stochastic condition" at entry, not just the headline grade —
     // zone in particular is what the Patterns breakdown groups by
     // states and stoch are populated together (see analyse()), so a live

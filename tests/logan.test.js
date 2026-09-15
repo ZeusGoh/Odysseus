@@ -4,7 +4,9 @@
    part of Odysseus */
 const {load} = require('./harness');
 const app = load(['cloud.js', 'logan.js']);   // logan persists through cloud.js's vlPut
-const {toGeminiSchema, LG_TOOLS, GEMINI_TOOLS, lgToolLabel, lgErrorHint, lgApiError, lgTransient} = app;
+const {toGeminiSchema, LG_TOOLS, lgToolLabel, lgErrorHint, lgApiError, lgTransient, LOGAN} = app;
+// the per-agent conversions, built once by agentMake
+const GEMINI_TOOLS = LOGAN.geminiTools, OPENAI_TOOLS = LOGAN.openaiTools;
 
 suite('toGeminiSchema — type casing');
 check('object becomes OBJECT', toGeminiSchema({type:'object', properties:{}}).type, 'OBJECT');
@@ -159,7 +161,6 @@ suite('lgTransient — which failures are worth another knock');
 
 suite('OPENAI_TOOLS — the OpenRouter shape, which needs no type rewriting');
 {
-  const {OPENAI_TOOLS} = app;
   check('one entry per tool', OPENAI_TOOLS.length, LG_TOOLS.length);
   check('names line up 1:1, same order',
         OPENAI_TOOLS.map(t=>t.function.name), LG_TOOLS.map(t=>t.name));

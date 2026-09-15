@@ -181,7 +181,12 @@ async function newsScan(){
       return Object.assign({}, t, {
         m: { '1h':nvPctOver(candles,1), '4h':nvPctOver(candles,4), '24h':nvPctOver(candles,24) },
         sharp: { '1h':nvSharpest(candles,1), '4h':nvSharpest(candles,4), '24h':nvSharpest(candles,24) },
-        hourlyVol: nvMedian(candles.slice(-24).map(c=>c.v))
+        hourlyVol: nvMedian(candles.slice(-24).map(c=>c.v)),
+        /*  Kept so the anomaly log can settle its own past checkpoints and read compression off
+            the same sweep: a day of hourly bars for the whole liquid board is a flagged coin's
+            forward price, the board median to measure it against, and the range/volume history
+            the coiled flag needs — no extra request, and no poller. In memory only.          */
+        bars: candles
       });
     }, (d,n)=>{
       $('nv-fill').style.width = Math.round(d/n*100)+'%';
@@ -201,6 +206,45 @@ async function newsScan(){
   newsScanning = false;
   $('nv-run').hidden = false; $('nv-stop').hidden = true; $('nv-bar').hidden = true;
   recomputeNews();
+  anomAfterScan();
+}
+
+/*  The anomaly log is written from a completed sweep, never from a recompute — changing the
+    window or the threshold re-filters rows that are already on screen, and logging those would
+    record whatever the filters were being dragged through rather than what the board did.
+    Flags wait for the positioning read to land, so a snapshot is whole when it is taken.     */
+async function anomAfterScan(){
+  const at = newsAt;
+  try{ await flowPending; }catch(e){ /* the OI read is a nice-to-have, not a reason to skip */ }
+  if(newsAt !== at) return;                 // a newer sweep already started — that one logs
+  const board = newsRaw.map(r=>({sym:r.sym, bars:r.bars}));
+  anomLogFlags(newsRows, newsMkt, at);
+  anomScoreFrom(board);
+  renderNews();
+  renderAnomPanels();
+  await coilAfterScan(at, board);
+  renderAnomPanels();
+}
+
+/*  The coiled pass. Compression and the volume read come free off the sweep's own bars, but open
+    interest does not — fillFlow only fetches it for coins that made the movers cut, and a coiled
+    coin by definition has not moved. So the tightest few get one request each, which is where
+    COIL_MAX earns its keep: this is a handful of requests, not a second sweep of the board.   */
+async function coilAfterScan(at, board){
+  const cands = coilCandidates(board).slice(0, COIL_MAX);
+  if(!cands.length) return;
+  if(MARKET === 'linear'){
+    await nvPool(cands, 5, async c=>{
+      const raw = newsRaw.find(r=>r.sym===c.sym);
+      try{
+        const oi = raw ? await nvOpenInterest(raw) : null;
+        c.oiChg = oi ? oi.chg : null;
+      }catch(e){ c.oiChg = null; }        // a coiled flag stands on compression alone if it must
+      return true;
+    });
+  }
+  if(newsAt !== at) return;
+  anomLogCoiled(cands, at);
 }
 
 /*  Filtering and classification are separate from the sweep, so changing the
@@ -234,11 +278,12 @@ function recomputeNews(){
   }).sort((a,b)=>Math.abs(b.excess)-Math.abs(a.excess)).slice(0,20);
 
   renderNews();
-  fillFlow();
+  flowPending = fillFlow();
 }
 
 /*  Open interest is only worth a request for rows that actually made the cut,
     so it is fetched after the table is already on screen.                   */
+let flowPending = null;
 async function fillFlow(){
   const need = newsRows.filter(r=>!r.oiTried);
   if(!need.length || MARKET!=='linear') return;
@@ -872,6 +917,9 @@ function renderNews(){
       ? 'The board moved this way too, but this coin moved far harder — high beta, often leverage rather than news'
       : 'The whole board moved about this much; this coin just came along';
     kind.appendChild(kd);
+    // the detector grading itself: what happened after the last time this coin was flagged
+    const tag = anomRowTag(r.sym, newsAt, r.move >= 0 ? 'up' : 'down');
+    if(tag){ const t = document.createElement('span'); t.innerHTML = tag; kind.appendChild(t); }
 
     const when = document.createElement('span');
     when.className = 'nvwhen';

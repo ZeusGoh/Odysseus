@@ -25,7 +25,14 @@ const CLOUD_KEYS = [
   {k:'vl.journal.v1',     label:'Journal trades',      secret:false},
   {k:'vl.journal.cfg.v1', label:'Journal settings',    secret:false},
   {k:'vl.logan.chat.v1',  label:"Logan's memory",      secret:false},
+  {k:'vl.maria.chat.v1',  label:"Maria's memory",      secret:false},
   {k:'vl.news.v1',        label:'News settings',       secret:false},
+  /*  The anomaly log syncs for the same reason the journal does: it is a record being built up
+      over weeks toward a sample worth reading, and a record that only exists on whichever
+      machine happened to run the scan is a record that never reaches 30 flags. It is the
+      largest non-cache key here — a full 1000 entries is roughly 440KB — which is comfortable
+      only because each key gets its own document rather than sharing one 1MB ceiling.       */
+  {k:'vl.news.anomalies.v1', label:'Anomaly log',      secret:false},
   {k:'vl.fired.v1',       label:'Already-fired alerts',secret:false},
   {k:'vl.alerts.v1',      label:'Alert settings',      secret:true },
   {k:'vl.logan.v1',       label:'Logan API keys',      secret:true }

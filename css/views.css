@@ -1,16 +1,34 @@
 /* views.css — Nav, watchlist, scanner, alerts and history views. */
-  /* ---- nav ---- */
-  .nav{display:flex;gap:2px}
-  .nav button{position:relative;padding:7px 11px;border-radius:var(--radius-sm);font-size:12px;
-        color:var(--mute);display:flex;align-items:center;gap:6px}
-  .nav button:hover{background:var(--raise);color:var(--ink)}
-  .nav button[aria-pressed=true]{background:var(--raise);color:var(--ink)}
-  .nav button[aria-pressed=true]::after{content:'';position:absolute;left:10px;right:10px;bottom:-1px;
-        height:2px;border-radius:2px 2px 0 0;background:linear-gradient(90deg,var(--focus),#9AA3FF);
-        box-shadow:0 0 8px rgba(110,123,255,.65)}
-  .nav .cnt{font-family:var(--mono);font-size:9.5px;padding:1px 5px;border-radius:8px;
-        background:var(--raise-2);color:var(--mute)}
-  .nav button[aria-pressed=true] .cnt{color:var(--ink);background:rgba(110,123,255,.22)}
+  /* ---- nav ----
+     Ten views inline used to eat ~600px of the rail, which pushed Refresh and the
+     market toggle off the right-hand edge on anything narrower than a wide desktop.
+     They live in a dropdown now; the trigger carries the current view's name, so the
+     rail costs one button's width and you can still see where you are. */
+  .navwrap{position:relative;flex:none}
+  .navtrigger{display:flex;align-items:center;gap:9px;padding:6px 12px 6px 10px;
+        border-radius:var(--radius-sm);font-size:12px;color:var(--ink);background:var(--panel);
+        box-shadow:inset 0 0 0 1px var(--edge)}
+  .navtrigger:hover{background:var(--raise);box-shadow:inset 0 0 0 1px var(--edge-2)}
+  .navtrigger[aria-expanded=true]{background:var(--raise);box-shadow:inset 0 0 0 1px var(--focus)}
+  .navnow{font-weight:500;white-space:nowrap}
+  .burger{display:flex;flex-direction:column;justify-content:center;gap:3px;width:12px;flex:none}
+  .burger i{height:1.5px;border-radius:1px;background:var(--mute)}
+  .navtrigger:hover .burger i,.navtrigger[aria-expanded=true] .burger i{background:var(--ink)}
+
+  .navpanel{position:absolute;top:calc(100% + 7px);left:0;z-index:60;width:212px;
+        display:flex;flex-direction:column;gap:1px;padding:4px;background:var(--panel);
+        border:1px solid var(--edge-2);border-radius:var(--radius-md);box-shadow:var(--shadow-pop)}
+  /* display:flex above would otherwise beat the hidden attribute's UA display:none */
+  .navpanel[hidden]{display:none}
+  .navpanel button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+        padding:8px 10px;border-radius:var(--radius-sm);font-size:12.5px;color:var(--mute)}
+  .navpanel button:hover{background:var(--raise);color:var(--ink)}
+  .navpanel button[aria-pressed=true]{color:var(--ink);
+        background:linear-gradient(180deg,rgba(110,123,255,.18),rgba(110,123,255,.06));
+        box-shadow:inset 0 0 0 1px rgba(110,123,255,.5)}
+  .navpanel .cnt{margin-left:auto;font-family:var(--mono);font-size:9.5px;padding:1px 6px;
+        border-radius:8px;background:var(--raise-2);color:var(--mute)}
+  .navpanel button[aria-pressed=true] .cnt{color:var(--ink);background:rgba(110,123,255,.22)}
 
   /* ---- watchlist ---- */
   .wtop{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
@@ -28,7 +46,11 @@
   .whead{color:var(--mute);font-size:10px;letter-spacing:.04em;
         background:var(--panel-2);border-bottom:1px solid var(--edge)}
   .whead span:nth-child(n+2){text-align:right}
-  .whead span:nth-child(n+4):nth-child(-n+8){text-align:center}
+  /*  Same rule as the scanner: a label sits the way its cell sits. The five frame
+      columns and the BTC / 200 pills are centred in their tracks, so these are too —
+      right-aligned labels over centred pills read against the next column along.    */
+  .whead span:nth-child(n+4):nth-child(-n+8),
+  .whead span:nth-child(10),.whead span:nth-child(11){text-align:center}
   .wrow{border-bottom:1px solid var(--edge);cursor:pointer}
   .wrow:last-child{border-bottom:0}
   .wrow:hover{background:var(--raise)}
@@ -151,8 +173,13 @@
         gap:10px;align-items:center;padding:10px 16px}
   .schead{color:var(--mute);font-size:10px;letter-spacing:.04em;
         background:var(--panel-2);border-bottom:1px solid var(--edge)}
+  /*  A header label has to sit the same way as the cell under it, column for column, or
+      the eye reads it against the wrong column. Right: Last, 24h, Score. Centred: BTC,
+      200, Div — those hold pills, which are centred in their track.                    */
   .schead span:nth-child(3),.schead span:nth-child(4),
-  .schead span:nth-child(8){text-align:right}
+  .schead span:nth-child(10){text-align:right}
+  .schead span:nth-child(7),.schead span:nth-child(8),
+  .schead span:nth-child(9){text-align:center}
   .scrow{border-bottom:1px solid var(--edge);cursor:pointer}
   .scrow:last-child{border-bottom:0}
   .scrow:hover{background:var(--raise)}
@@ -228,4 +255,32 @@
   details.hexp{margin:4px 0 0;border-top:0;padding-top:0}
   details.hexp summary{color:var(--focus)}
   details.hexp p{margin-top:9px}
+
+  /* ---- sessions ---- */
+  .sesslive{padding:14px 16px}
+  .sessnow{font-size:11.5px;color:var(--mute);margin-bottom:10px}
+  .sessnow b{color:var(--ink)}
+  .sessstages{display:flex;flex-wrap:wrap;gap:8px}
+  .sessstage{display:flex;flex-direction:column;gap:5px;padding:10px 13px;border-radius:6px;
+        background:var(--chip);box-shadow:inset 0 0 0 1px var(--edge);min-width:210px;flex:1}
+  .sesslab{font-size:10px;color:var(--mute);letter-spacing:.03em}
+  .sessval{font-size:12px;font-weight:500;color:var(--ink)}
+  .sessval.up{color:var(--up)} .sessval.down{color:var(--down)} .sessval.dim{color:var(--mute)}
+
+  /*  Compound selector (.sessrow.mrow, not just .sessrow) so this survives the shared
+      .mrow media-query override in charts.css, which is tuned for the Frame matrix's
+      own columns and would otherwise clobber this grid at the same specificity.      */
+  .sesshead.mrow,.sessrow.mrow{display:grid;grid-template-columns:minmax(0,1fr) 56px 76px;
+        gap:10px;align-items:center;padding:11px 16px}
+  .sesshead{color:var(--mute);font-size:10px;letter-spacing:.04em;
+        background:var(--panel-2);border-bottom:1px solid var(--edge)}
+  .sesshead span:nth-child(n+2){text-align:right}
+  .sessrow{border-bottom:1px solid var(--edge);font-size:11.5px}
+  .sessrow:last-child{border-bottom:0}
+  .sessrow:hover{background:var(--raise)}
+  .sessrow > div:nth-child(n+2){text-align:right}
+  .sessrow.thinsample{opacity:.5}
+  .sessrowlab{font-size:12px;font-weight:500;color:var(--ink);display:block}
+  .sessrowlab .tspan{display:block;margin-top:2px;font-family:var(--mono);font-size:9px;
+        color:var(--dim);font-weight:400;letter-spacing:.01em;white-space:normal}
 

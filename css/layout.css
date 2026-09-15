@@ -12,7 +12,14 @@
   .brand::after{content:'';position:absolute;top:1px;right:4px;width:5px;height:5px;
         border-radius:50%;background:var(--focus);box-shadow:0 0 9px 1.5px rgba(110,123,255,.85)}
   .rail .grow{flex:1}
-  .status{display:flex;align-items:center;gap:7px;color:var(--mute);font-size:12px}
+  /*  The rail must never push its right-hand controls off the screen. The symbol strip
+      already scrolls inside itself, so it is the one item allowed to absorb a narrow
+      window — but a flex item refuses to shrink below its own content until min-width:0
+      says otherwise, which is how the Perp/Spot toggle ended up 2px wide while the strip
+      kept all 627 of its own. Everything to the right of the spacer is pinned instead. */
+  .brand,.navwrap,.rail .status,.rail .seg2,.rail .ghost{flex:none}
+  .status{display:flex;align-items:center;gap:7px;color:var(--mute);font-size:12px;
+        white-space:nowrap}
   .pulse{width:6px;height:6px;border-radius:50%;background:var(--up);box-shadow:0 0 7px 1px rgba(8,153,129,.65)}
   .pulse.stale{background:var(--down);box-shadow:0 0 7px 1px rgba(242,54,69,.55)}
   .ghost{padding:5px 11px;border:1px solid var(--edge);border-radius:var(--radius-sm);
@@ -25,8 +32,8 @@
         box-shadow:inset 0 -1px 0 var(--focus)}
 
   /* ---- symbol switcher ---- */
-  .symwrap{position:relative;display:flex;align-items:center;gap:6px}
-  .symtabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;max-width:46vw}
+  .symwrap{position:relative;display:flex;align-items:center;gap:6px;min-width:0}
+  .symtabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;max-width:46vw;min-width:0}
   .symtabs::-webkit-scrollbar{display:none}
   .symtab{padding:5px 10px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;
         color:var(--mute);white-space:nowrap}
@@ -91,3 +98,8 @@
   .btcstrip{height:9px;flex:1}
   .btcstrip .seg b{display:none}
   #btcverdict.with{color:var(--up)} #btcverdict.against{color:var(--down)}
+
+  /* ---- nav groups ---- */
+  .navpanel .navgrp{margin:10px 0 3px;padding:0 11px;font-family:var(--mono);font-size:9px;
+        letter-spacing:.11em;text-transform:uppercase;color:var(--dim)}
+  .navpanel .navgrp:first-child{margin-top:2px}

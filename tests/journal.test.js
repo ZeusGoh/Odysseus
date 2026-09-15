@@ -5,7 +5,7 @@
 const {load} = require('./harness');
 const app = load(['cloud.js','indicators.js','market-data.js','storage.js','state.js','backtest.js',
                    'btc-reference.js','logan.js','verdict.js','journal.js']);
-const {jR, jPct, jSuggestSize, jRiskUnit, jStats, jGradeStats, jAdd, jClose,
+const {jR, jPct, jSuggestSize, jRiskUnit, jSizePlan, jRiskAmount, jRiskPctOf, jStats, jGradeStats, jAdd, jClose,
        jGroupStats, jHourBlockOf, jWeekdayOf, jMonthOf, jZoneAt, zoneOf,
        J_HOUR_BLOCKS, stoch} = app;
 
@@ -171,3 +171,40 @@ suite('jZoneAt — reconstructing the stochastic zone at a past moment, not the 
   check('a known symbol on a frame with no data also returns null',
         jZoneAt('ZTEST','1W', t1), null);
 }
+
+suite('jSizePlan — the real trade that exposed the old panel');
+{
+  // ZEC: entry 1139, invalidation 1124, risking $15. The user's actual size
+  // was 1 coin; the old panel suggested 0.003-ish because it sized off a stale
+  // account × percentage instead of the risk that was actually being taken.
+  const p = jSizePlan(1139, 1124, 15, 1000);
+  check('a 15-point stop risked at $15 is exactly one coin', p.size, 1);
+  check('the stop distance is stated back', p.stop, 15);
+  check('the risk is stated back, so a wrong one is visible', p.riskUsd, 15);
+  check('notional is the position, not the risk', p.notional, 1139);
+  near('the stop is reported as a percentage too', p.stopPct, 1.3169, 1e-3);
+  near('leverage is notional over account', p.leverage, 1.139, 1e-9);
+}
+
+suite('jSizePlan — refusals rather than nonsense');
+check('no stop distance means no plan', jSizePlan(1139, 1139, 15, 1000), null);
+check('no risk means no plan', jSizePlan(1139, 1124, 0, 1000), null);
+check('a negative risk is refused', jSizePlan(1139, 1124, -15, 1000), null);
+check('an absent account leaves leverage unstated rather than invented',
+      jSizePlan(1139, 1124, 15, 0).leverage, null);
+check('a short sizes off the same distance, sign ignored',
+      jSizePlan(1124, 1139, 15, 1000).size, 1);
+
+suite('risk amount and percentage are two views of one setting');
+check('1% of 1000 is $10', jRiskAmount(1000, 1), 10);
+check('$15 of 1000 is 1.5%', jRiskPctOf(1000, 15), 1.5);
+{
+  const usd = jRiskAmount(2500, 0.6);
+  check('the pair round-trips', jRiskPctOf(2500, usd), 0.6);
+}
+check('no account means no percentage rather than Infinity', jRiskPctOf(0, 15), null);
+
+suite('jSuggestSize still honours its old contract, via the new path');
+check('the original example is unchanged', jSuggestSize(100, 90, 1000, 1), 1);
+check('and the ZEC case agrees when the percentage matches the dollars',
+      jSuggestSize(1139, 1124, 1000, 1.5), 1);

@@ -9,8 +9,35 @@ const LG_KEY = 'vl.logan.v1';
     time blaming the key.                                                    */
 const isFileOrigin = () => location.protocol === 'file:';
 const FILE_HINT = 'You opened this file directly from disk, so the browser sends no origin and the API will refuse the call whatever key you use. Serve the folder instead: open a terminal where this file lives, run  python3 -m http.server 8000  then visit http://localhost:8000/ and click the file.';
-let lgChat = [];                 // {role, content}
-let lgBusy = false;
+/* ---------- agents ----------
+   Logan was the only agent, so his transcript, his DOM ids and his tools were
+   all just module-level names. Maria needs the same three-provider tool loop
+   over a different brief, and that loop is subtle enough — call ids on one
+   provider, name-matching on another, a JSON-string argument list on the
+   third — that a second copy of it would be a standing invitation for the two
+   to drift apart.
+
+   So the loop takes an agent instead. An agent owns its transcript, its tools,
+   its prompt and the elements it draws into; the providers, the keys and the
+   error handling stay shared. Logan is defined at the bottom of this file,
+   Maria in maria.js, and neither knows anything about the other.            */
+const AGENTS = {};
+
+function agentMake(spec){
+  const ag = Object.assign({
+    chat: [],          // what the user sees
+    api: [],           // provider-shaped transcript, including tool blocks
+    busy: false,
+    quick: []
+  }, spec);
+  ag.geminiTools = [{functionDeclarations: ag.tools.map(t=>(
+    {name:t.name, description:t.description, parameters:toGeminiSchema(t.input_schema)}))}];
+  ag.openaiTools = ag.tools.map(t=>({
+    type:'function', function:{name:t.name, description:t.description, parameters:t.input_schema}}));
+  AGENTS[ag.id] = ag;
+  return ag;
+}
+
 
 /*  Two backends, one agent. lgCfg keeps each provider's key/model under its
     own field so switching back and forth never clobbers the other one. Older
@@ -87,46 +114,46 @@ function lgIsUserTurn(m){
 
 // drop the oldest complete exchange from both transcripts at once. Returns
 // false when only one exchange is left, since half an exchange is unusable.
-function lgDropOldestExchange(){
-  const a0 = lgApi.findIndex(lgIsUserTurn);
-  const a1 = lgApi.findIndex((m,i)=> i > a0 && lgIsUserTurn(m));
-  const c0 = lgChat.findIndex(m => m.role === 'user');
-  const c1 = lgChat.findIndex((m,i)=> i > c0 && m.role === 'user');
+function agDropOldestExchange(ag){
+  const a0 = ag.api.findIndex(lgIsUserTurn);
+  const a1 = ag.api.findIndex((m,i)=> i > a0 && lgIsUserTurn(m));
+  const c0 = ag.chat.findIndex(m => m.role === 'user');
+  const c1 = ag.chat.findIndex((m,i)=> i > c0 && m.role === 'user');
   if(a1 < 0 || c1 < 0) return false;
-  lgApi  = lgApi.slice(a1);
-  lgChat = lgChat.slice(c1);
+  ag.api  = ag.api.slice(a1);
+  ag.chat = ag.chat.slice(c1);
   return true;
 }
 
-function lgSaveChat(){
+function agSaveChat(ag){
   try{
     const pack = ()=> JSON.stringify({v:1, provider:lgCfg.provider, at:Date.now(),
-                                      chat:lgChat, api:lgApi});
+                                      chat:ag.chat, api:ag.api});
     let blob = pack();
-    while(blob.length > LG_CHAT_MAX && lgDropOldestExchange()) blob = pack();
-    return vlPut(LG_CHAT_KEY, blob);
+    while(blob.length > LG_CHAT_MAX && agDropOldestExchange(ag)) blob = pack();
+    return vlPut(ag.chatKey, blob);
   }catch(e){ return false; }
 }
 
-function lgLoadChat(){
+function agLoadChat(ag){
   try{
-    const raw = JSON.parse(localStorage.getItem(LG_CHAT_KEY) || 'null');
+    const raw = JSON.parse(localStorage.getItem(ag.chatKey) || 'null');
     if(!raw || !Array.isArray(raw.chat) || !Array.isArray(raw.api)) return;
-    lgChat = raw.chat;
-    /*  A transcript recorded under the other provider is kept on screen but not
+    ag.chat = raw.chat;
+    /*  A transcript recorded under another provider is kept on screen but not
         replayed — the wire formats do not interchange, and sending Claude's
-        blocks to Gemini fails outright. Logan sees a fresh context; you still
-        see what was said.                                                     */
-    lgApi = (raw.provider === lgCfg.provider) ? raw.api : [];
+        blocks to Gemini fails outright. The agent sees a fresh context; you
+        still see what was said.                                              */
+    ag.api = (raw.provider === lgCfg.provider) ? raw.api : [];
   }catch(e){}
 }
 
 /*  Cleared by writing an empty transcript rather than deleting the key. A
     deleted key looks like "nothing to say" to the sync, which would let the
     other machine's copy flow back on the next pull and undo the clear.      */
-function lgForgetChat(){
-  lgChat = []; lgApi = [];
-  lgSaveChat();
+function agForgetChat(ag){
+  ag.chat = []; ag.api = [];
+  agSaveChat(ag);
 }
 
 /*  Logan is handed the numbers the app has already computed. He is not asked to
@@ -222,30 +249,18 @@ HOW TO ANSWER:
   makes their own decisions and manages their own risk. Do not express false certainty about
   what price will do next, and do not suggest position sizes or leverage.`;
 
-function lgPush(role, content, cls){
-  lgChat.push({role, content});
-  lgSaveChat();
-  lgRender(cls);
+function agPush(ag, role, content, cls){
+  ag.chat.push({role, content});
+  agSaveChat(ag);
+  agRender(ag, cls);
 }
 
-function lgRender(cls){
-  const log = $('lg-log');
-  if(!lgChat.length){
-    const keyed = lgHasKey();
-    log.innerHTML = '<div class="lgempty"><b>Logan reads the live state of whatever you have open.</b>'+
-      (keyed
-        ? 'He is an agent, not just a chat box: he can read any coin, pull the backtest for a setup, '+
-          'sweep the board, find what is moving and why, check headlines, switch the terminal and edit '+
-          'your watchlist. You will see each step as he takes it. Running on '+lgProviderLabel()+'.'
-        : 'With no API key connected he answers from the <b>built-in reader</b>: deterministic, offline '+
-          'and free, walking the same numbers the panel shows. It states what they say but cannot hold '+
-          'a conversation.<br><br>For actual reasoning at no cost, press <b>Copy briefing</b> and paste '+
-          'it into a Claude chat — that uses the subscription you already have.')+
-      '</div>';
-    return;
-  }
+function agRender(ag, cls){
+  const log = $(ag.dom.log);
+  if(!log) return;
+  if(!ag.chat.length){ log.innerHTML = ag.empty(lgHasKey()); return; }
   log.innerHTML = '';
-  lgChat.forEach((m,i)=>{
+  ag.chat.forEach(m=>{
     if(m.role === 'tool'){
       const t = document.createElement('div');
       t.className = 'lgtool';
@@ -256,15 +271,15 @@ function lgRender(cls){
     const el = document.createElement('div');
     el.className = 'lgmsg' + (m.error?' err':'');
     el.innerHTML = '<div class="lgwho'+(m.role==='user'?' me':'')+'">'+
-                   (m.role==='user'?'You':'LOGAN')+'</div>'+
+                   (m.role==='user'?'You':jEsc(ag.name.toUpperCase()))+'</div>'+
                    '<div class="lgbody"></div>';
     el.querySelector('.lgbody').textContent = m.content;
     log.appendChild(el);
   });
-  if(lgBusy){
+  if(ag.busy){
     const el = document.createElement('div');
     el.className = 'lgmsg';
-    el.innerHTML = '<div class="lgwho">LOGAN</div><div class="lgbody">'+
+    el.innerHTML = '<div class="lgwho">'+jEsc(ag.name.toUpperCase())+'</div><div class="lgbody">'+
                    '<span class="lgdots"><i></i><i></i><i></i></span></div>';
     log.appendChild(el);
   }
@@ -286,7 +301,6 @@ function lgRender(cls){
    ============================================================ */
 
 const LG_MAX_TURNS = 6;     // a hard stop — a loop that never lands is worse than a wrong answer
-let lgApi = [];             // API-shaped transcript, including tool blocks
 
 const LG_TOOLS = [
   { name:'read_coin',
@@ -377,9 +391,9 @@ function toGeminiSchema(schema){
   if(schema.required) out.required = schema.required;
   return out;
 }
-const GEMINI_TOOLS = [{functionDeclarations: LG_TOOLS.map(t=>(
-  {name:t.name, description:t.description, parameters: toGeminiSchema(t.input_schema)}
-))}];
+/*  Each agent's tool list is converted once, in agentMake: Gemini's Schema
+    wants uppercase proto-enum type names where Anthropic and OpenAI take plain
+    lowercase JSON Schema. See LOGAN.geminiTools / LOGAN.openaiTools.        */
 
 // Load a coin into memory if it is not already there, and return its canonical ticker
 async function lgEnsureCoin(code){
@@ -545,13 +559,13 @@ function lgToolLabel(name, input){
   return name;
 }
 
-async function lgCallAnthropic(){
+async function agCallAnthropic(ag){
   const body = {
     model: lgActiveModel(),
     max_tokens: 1500,
-    system: LOGAN_SYSTEM + '\n\nTHE COIN CURRENTLY OPEN (JSON):\n' + JSON.stringify(loganContext()),
-    tools: LG_TOOLS,
-    messages: lgApi
+    system: ag.system(),
+    tools: ag.tools,
+    messages: ag.api
   };
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
@@ -564,22 +578,15 @@ async function lgCallAnthropic(){
   return j;
 }
 
-/*  OpenRouter speaks the OpenAI shape, which is the one format LG_TOOLS needs
-    almost no translating for: input_schema is already plain JSON Schema with
+/*  OpenRouter speaks the OpenAI shape, which is the one format the tool list
+    needs no translating for: input_schema is already plain JSON Schema with
     the lowercase type names OpenAI expects, unlike Gemini's uppercase enum.  */
-const OPENAI_TOOLS = LG_TOOLS.map(t => ({
-  type:'function',
-  function:{name:t.name, description:t.description, parameters:t.input_schema}
-}));
-
-async function lgCallOpenRouter(){
+async function agCallOpenRouter(ag){
   const body = {
     model: lgActiveModel(),
     max_tokens: 1500,
-    messages: [{role:'system', content:
-      LOGAN_SYSTEM + '\n\nTHE COIN CURRENTLY OPEN (JSON):\n' + JSON.stringify(loganContext())}]
-      .concat(lgApi),
-    tools: OPENAI_TOOLS
+    messages: [{role:'system', content: ag.system()}].concat(ag.api),
+    tools: ag.openaiTools
   };
   const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method:'POST',
@@ -599,29 +606,22 @@ async function lgCallOpenRouter(){
 /*  Gemini's generateContent, called the same way Google's own web playground
     calls it — a plain client-side fetch, key as a query param, no special
     browser-access header the way Anthropic needs one.                       */
-async function lgCallGemini(){
+async function agCallGemini(ag){
   const body = {
-    systemInstruction: {parts:[{text:
-      LOGAN_SYSTEM + '\n\nTHE COIN CURRENTLY OPEN (JSON):\n' + JSON.stringify(loganContext())}]},
-    contents: lgApi,
-    tools: GEMINI_TOOLS,
+    systemInstruction: {parts:[{text: ag.system()}]},
+    contents: ag.api,
+    tools: ag.geminiTools,
     generationConfig: {maxOutputTokens: 1500}
   };
   const url = 'https://generativelanguage.googleapis.com/v1beta/models/'+
     encodeURIComponent(lgActiveModel())+':generateContent?key='+encodeURIComponent(lgActiveKey());
-  const r = await fetch(url, {
-    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
-  });
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'},
+                              body: JSON.stringify(body)});
   const j = await r.json();
   if(!r.ok) throw lgApiError(j, r.status);
   return j;
 }
 
-/*  An error the API actually answered with, as opposed to a call that never
-    landed at all. The distinction decides what we can honestly say afterwards:
-    a quota refusal is proof the request arrived and was understood, so blaming
-    the page's origin at that point sends someone chasing a problem they do not
-    have.                                                                     */
 /*  What to actually tell someone when a turn fails. Three different things get
     reported as one "could not reach the API" otherwise, and only one of them
     is worth acting on the way the old message implied.                       */
@@ -630,8 +630,8 @@ function lgErrorHint(e){
 
   // the model itself is swamped — nothing to do with the key, the request or us
   if(lgTransient(e)){
-    return lgProviderLabel()+'’s servers are busy right now, so the model turned the request '+
-      'away. I already tried twice. This is on their side and usually passes in a minute — '+
+    return lgProviderLabel()+'\u2019s servers are busy right now, so the model turned the request '+
+      'away. I already tried twice. This is on their side and usually passes in a minute \u2014 '+
       'ask again shortly, or switch provider in Connection if it drags on.';
   }
 
@@ -639,7 +639,7 @@ function lgErrorHint(e){
   if(e.status === 429 || /quota|rate limit|RESOURCE_EXHAUSTED/i.test(msg)){
     const wait = /retry in ([\d.]+)\s*s/i.exec(msg);
     return lgProviderLabel()+' is rate limited: you have used up the free tier\'s allowance for '+
-      'this stretch of time. Nothing is broken and nothing is lost — the conversation is still here.'+
+      'this stretch of time. Nothing is broken and nothing is lost \u2014 the conversation is still here.'+
       (wait ? ' Try again in about '+Math.ceil(parseFloat(wait[1]))+' seconds.'
             : ' Wait a minute and ask again.');
   }
@@ -660,22 +660,28 @@ function lgTransient(e){
          /high demand|overloaded|unavailable|try again later/i.test(e.message || '');
 }
 
-async function lgCallWithRetry(fn){
-  try{ return await fn(); }
-  catch(e){
-    if(!lgTransient(e)) throw e;
-    lgChat.push({role:'tool', content:'model busy — waiting a moment and trying again'});
-    lgRender();
-    await new Promise(r => setTimeout(r, 2500));
-    return fn();
-  }
-}
-
+/*  An error the API actually answered with, as opposed to a call that never
+    landed at all. The distinction decides what we can honestly say afterwards:
+    a quota refusal is proof the request arrived and was understood, so blaming
+    the page's origin at that point sends someone chasing a problem they do not
+    have.                                                                     */
 function lgApiError(j, status){
   const e = new Error((j && j.error && j.error.message) || ('request failed with '+status));
   e.reached = true;
   e.status = status;
   return e;
+}
+
+// the retry takes the agent so the "trying again" line lands in its own chat
+async function agCallWithRetry(ag, fn){
+  try{ return await fn(ag); }
+  catch(e){
+    if(!lgTransient(e)) throw e;
+    ag.chat.push({role:'tool', content:'model busy \u2014 waiting a moment and trying again'});
+    agRender(ag);
+    await new Promise(r => setTimeout(r, 2500));
+    return fn(ag);
+  }
 }
 
 // a runaway tool result would blow the context; truncating beats failing.
@@ -686,32 +692,34 @@ function lgTruncated(out){
   return s.length <= 24000 ? out : {truncated:true, result: s.slice(0, 24000)};
 }
 
-async function lgSend(text){
+async function agSend(ag, text){
   text = (text||'').trim();
-  if(!text || lgBusy) return;
-  lgPush('user', text);
+  if(!text || ag.busy) return;
+  agPush(ag, 'user', text);
 
-  // With no key there is nothing to call, so the built-in reader answers. It is
-  // not a language model, has no tools, and says so.
-  if(!lgHasKey()){ lgPush('assistant', await offlineAnswer(text)); return; }
+  // With no key there is nothing to call, so the agent's own fallback answers.
+  if(!lgHasKey()){ agPush(ag, 'assistant', await ag.offline(text)); return; }
 
   const gemini = lgCfg.provider === 'gemini';
-  const openai = lgCfg.provider === 'openrouter';   // OpenAI-shaped, same as Anthropic's for a plain user turn
-  lgApi.push(gemini ? {role:'user', parts:[{text}]} : {role:'user', content:text});
-  lgSaveChat();   // keep the two transcripts in step; lgPush above only saw the chat side
-  lgBusy = true; $('lg-send').disabled = true; lgRender();
+  const openai = lgCfg.provider === 'openrouter';   // OpenAI-shaped, as Anthropic's is for a plain user turn
+  ag.api.push(gemini ? {role:'user', parts:[{text}]} : {role:'user', content:text});
+  agSaveChat(ag);   // keep the two transcripts in step; agPush above only saw the chat side
+  ag.busy = true;
+  const sendBtn = $(ag.dom.send); if(sendBtn) sendBtn.disabled = true;
+  agRender(ag);
+  const done = ()=>{ ag.busy = false; if(sendBtn) sendBtn.disabled = false; };
 
   try{
     for(let turn=0; turn<LG_MAX_TURNS; turn++){
 
       if(openai){
-        const j = await lgCallWithRetry(lgCallOpenRouter);
+        const j = await agCallWithRetry(ag, agCallOpenRouter);
         const msg = (j.choices && j.choices[0] && j.choices[0].message) || {};
         const calls = msg.tool_calls || [];
 
         if(calls.length){
-          if(msg.content && msg.content.trim()) lgChat.push({role:'assistant', content:msg.content.trim()});
-          lgApi.push(msg);                       // the model's own turn, echoed back verbatim
+          if(msg.content && msg.content.trim()) ag.chat.push({role:'assistant', content:msg.content.trim()});
+          ag.api.push(msg);                      // the model's own turn, echoed back verbatim
 
           for(const tc of calls){
             const fn = tc.function || {};
@@ -720,89 +728,89 @@ async function lgSend(text){
                 than the whole conversation.                                  */
             let args = {};
             try{ args = JSON.parse(fn.arguments || '{}'); }catch(e){ args = {}; }
-            lgChat.push({role:'tool', content:lgToolLabel(fn.name, args)});
-            lgRender();
+            ag.chat.push({role:'tool', content:ag.label(fn.name, args)});
+            agRender(ag);
             let out;
-            try{ out = await lgRunTool(fn.name, args); }
+            try{ out = await ag.run(fn.name, args); }
             catch(e){ out = {error:e.message}; }
-            lgApi.push({role:'tool', tool_call_id:tc.id,
-                        content: JSON.stringify(lgTruncated(out)).slice(0, 24000)});
+            ag.api.push({role:'tool', tool_call_id:tc.id,
+                         content: JSON.stringify(lgTruncated(out)).slice(0, 24000)});
           }
           continue;
         }
 
         const outText = (msg.content || '').trim();
-        lgApi.push({role:'assistant', content: outText || '(no answer)'});
-        lgBusy = false; $('lg-send').disabled = false;
-        lgPush('assistant', outText || 'No response came back.');
+        ag.api.push({role:'assistant', content: outText || '(no answer)'});
+        done();
+        agPush(ag, 'assistant', outText || 'No response came back.');
         return;
       }
 
       if(gemini){
-        const j = await lgCallWithRetry(lgCallGemini);
+        const j = await agCallWithRetry(ag, agCallGemini);
         const cand = j.candidates && j.candidates[0];
         const parts = (cand && cand.content && cand.content.parts) || [];
         const calls = parts.filter(p=>p.functionCall);
 
         if(calls.length){
           const lead = parts.filter(p=>p.text && p.text.trim()).map(p=>p.text.trim()).join('\n');
-          if(lead) lgChat.push({role:'assistant', content:lead});
-          lgApi.push({role:'model', parts});   // echo the model's own turn back verbatim
+          if(lead) ag.chat.push({role:'assistant', content:lead});
+          ag.api.push({role:'model', parts});   // echo the model's own turn back verbatim
 
           const results = [];
           for(const fc of calls){
-            lgChat.push({role:'tool', content:lgToolLabel(fc.functionCall.name, fc.functionCall.args)});
-            lgRender();
+            ag.chat.push({role:'tool', content:ag.label(fc.functionCall.name, fc.functionCall.args)});
+            agRender(ag);
             let out;
-            try{ out = await lgRunTool(fc.functionCall.name, fc.functionCall.args||{}); }
+            try{ out = await ag.run(fc.functionCall.name, fc.functionCall.args||{}); }
             catch(e){ out = {error:e.message}; }
             results.push({functionResponse:{name:fc.functionCall.name, response: lgTruncated(out)}});
           }
-          lgApi.push({role:'user', parts: results});
+          ag.api.push({role:'user', parts: results});
           continue;
         }
 
         const outText = parts.filter(p=>p.text).map(p=>p.text).join('\n').trim();
-        lgApi.push({role:'model', parts: parts.length ? parts : [{text: outText || '(no answer)'}]});
-        lgBusy = false; $('lg-send').disabled = false;
-        lgPush('assistant', outText || 'No response came back.');
+        ag.api.push({role:'model', parts: parts.length ? parts : [{text: outText || '(no answer)'}]});
+        done();
+        agPush(ag, 'assistant', outText || 'No response came back.');
         return;
       }
 
-      const j = await lgCallWithRetry(lgCallAnthropic);
+      const j = await agCallWithRetry(ag, agCallAnthropic);
 
       if(j.stop_reason === 'tool_use'){
-        lgApi.push({role:'assistant', content:j.content});
+        ag.api.push({role:'assistant', content:j.content});
         const results = [];
         for(const blk of (j.content||[])){
           if(blk.type === 'text' && blk.text && blk.text.trim())
-            lgChat.push({role:'assistant', content:blk.text.trim()});
+            ag.chat.push({role:'assistant', content:blk.text.trim()});
           if(blk.type !== 'tool_use') continue;
-          lgChat.push({role:'tool', content:lgToolLabel(blk.name, blk.input)});
-          lgRender();
+          ag.chat.push({role:'tool', content:ag.label(blk.name, blk.input)});
+          agRender(ag);
           let out;
-          try{ out = await lgRunTool(blk.name, blk.input); }
+          try{ out = await ag.run(blk.name, blk.input); }
           catch(e){ out = {error:e.message}; }
           results.push({type:'tool_result', tool_use_id:blk.id,
                         content: JSON.stringify(out).slice(0, 24000)});
         }
-        lgApi.push({role:'user', content:results});
+        ag.api.push({role:'user', content:results});
         continue;
       }
 
       const outText = (j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n').trim();
-      lgApi.push({role:'assistant', content: outText || '(no answer)'});
-      lgBusy = false; $('lg-send').disabled = false;
-      lgPush('assistant', outText || 'No response came back.');
+      ag.api.push({role:'assistant', content: outText || '(no answer)'});
+      done();
+      agPush(ag, 'assistant', outText || 'No response came back.');
       return;
     }
-    lgBusy = false; $('lg-send').disabled = false;
-    lgPush('assistant', 'That used up my tool budget without landing an answer. Ask again more narrowly.');
+    done();
+    agPush(ag, 'assistant', 'That used up my tool budget without landing an answer. Ask again more narrowly.');
   }catch(e){
-    lgBusy = false; $('lg-send').disabled = false;
-    lgChat.push({role:'assistant', content: lgErrorHint(e), error:true});
-    lgSaveChat();
-    lgRender();
+    done();
+    ag.chat.push({role:'assistant', content: lgErrorHint(e), error:true});
+    agSaveChat(ag);
+    agRender(ag);
   }
 }
 
@@ -817,22 +825,23 @@ const LG_QUICK = [
   ['Check my watchlist',   'Go through my watchlist and tell me which of them has the cleanest read today.']
 ];
 
-function lgBuildQuick(){
-  const box = $('lg-quick');
+function agBuildQuick(ag){
+  const box = $(ag.dom.quick);
+  if(!box) return;
   box.innerHTML = '';
-  LG_QUICK.forEach(([label, prompt])=>{
+  (ag.quick||[]).forEach(([label, prompt])=>{
     const b = document.createElement('button');
     b.textContent = label;
-    b.onclick = ()=> lgSend(prompt);
+    b.onclick = ()=> agSend(ag, prompt);
     box.appendChild(b);
   });
 }
 
-function lgSetMode(){
-  const off = $('lg-offline');
+function agSetMode(ag){
+  const off = $(ag.dom.offline);
   const keyed = lgHasKey();
   if(off) off.hidden = keyed;
-  const el = $('lg-mode');
+  const el = $(ag.dom.mode);
   if(!el) return;
   el.textContent = keyed ? lgProviderLabel() : 'built-in reader';
   el.classList.toggle('api', keyed);
@@ -852,7 +861,7 @@ function lgShowProviderFields(p){
 }
 
 function lgInit(){
-  lgLoadChat();
+  agLoadChat(LOGAN);
   $('lg-key').value = lgCfg.anthropicKey || '';
   $('lg-model').value = lgCfg.anthropicModel || '';
   $('lg-gkey').value = lgCfg.geminiKey || '';
@@ -871,7 +880,46 @@ function lgInit(){
       'this browser and is sent only to its own provider. Leave a Model box blank for that provider\'s '+
       'default.';
   $('lg-keynote').textContent = isFileOrigin() ? base+' — '+FILE_HINT : base;
-  lgBuildQuick();
-  lgSetMode();
-  lgRender();
+  /*  The Connection panel is shared, so every registered agent has its badge,
+      its quick prompts and its saved transcript brought up together. Maria
+      registers herself from maria.js and is picked up here without this
+      function knowing she exists.                                           */
+  Object.values(AGENTS).forEach(ag=>{
+    if(ag !== LOGAN) agLoadChat(ag);
+    agBuildQuick(ag);
+    agSetMode(ag);
+    agRender(ag);
+  });
 }
+
+/* ---------- Logan himself ----------
+   Everything above is the engine; this is the only part that is about Logan.  */
+const LOGAN = agentMake({
+  id:'logan', name:'Logan', chatKey: LG_CHAT_KEY,
+  tools: LG_TOOLS, run: lgRunTool, label: lgToolLabel, quick: LG_QUICK,
+  dom: {log:'lg-log', send:'lg-send', quick:'lg-quick', mode:'lg-mode', offline:'lg-offline'},
+  system: ()=> LOGAN_SYSTEM + '\n\nTHE COIN CURRENTLY OPEN (JSON):\n' + JSON.stringify(loganContext()),
+  offline: (text)=> offlineAnswer(text),
+  empty: (keyed)=> '<div class="lgempty"><b>Logan reads the live state of whatever you have open.</b>'+
+    (keyed
+      ? 'He is an agent, not just a chat box: he can read any coin, pull the backtest for a setup, '+
+        'sweep the board, find what is moving and why, check headlines, switch the terminal and edit '+
+        'your watchlist. You will see each step as he takes it. Running on '+lgProviderLabel()+'.'
+      : 'With no API key connected he answers from the <b>built-in reader</b>: deterministic, offline '+
+        'and free, walking the same numbers the panel shows. It states what they say but cannot hold '+
+        'a conversation.<br><br>For actual reasoning at no cost, press <b>Copy briefing</b> and paste '+
+        'it into a Claude chat — that uses the subscription you already have.')+
+    '</div>'
+});
+
+/*  The names the rest of the app already calls. Kept as thin wrappers rather
+    than renamed everywhere, so boot.js, the view switcher and the tests go on
+    speaking about Logan without knowing the engine now takes an agent.       */
+function lgSend(text){ return agSend(LOGAN, text); }
+function lgRender(cls){ return agRender(LOGAN, cls); }
+function lgPush(role, content, cls){ return agPush(LOGAN, role, content, cls); }
+function lgSaveChat(){ return agSaveChat(LOGAN); }
+function lgLoadChat(){ return agLoadChat(LOGAN); }
+function lgForgetChat(){ return agForgetChat(LOGAN); }
+function lgSetMode(){ return agSetMode(LOGAN); }
+function lgBuildQuick(){ return agBuildQuick(LOGAN); }

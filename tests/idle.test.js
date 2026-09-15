@@ -1,37 +1,26 @@
 /* idle.test.js — the idle screen's state machine. The drawing is verified in a
-   browser; what is worth pinning here is when it is allowed to appear at all,
-   because the one behaviour that would actually annoy someone is a screensaver
-   fading in over the panel they are reading.
+   browser; what is worth pinning here is when it appears and what takes it away.
    part of Odysseus */
 const {load} = require('./harness');
 const app = load(['cloud.js','indicators.js','market-data.js','state.js','idle.js']);
-const {IDLE_AFTER, idleShow, idleHide, idleReset, panelOpen, panelClose, panelToggle,
-       idleState} = app;
+const {IDLE_AFTER, idleShow, idleHide, idleReset, idleState} = app;
 // module-level flags are snapshotted by the harness, so read them live
-const shown = ()=> idleState().idleShown, panelUp = ()=> idleState().panelOn;
+const shown = ()=> idleState().idleShown;
 
-suite('the delay is the five minutes that was asked for');
-check('IDLE_AFTER is five minutes in milliseconds', IDLE_AFTER, 5*60*1000);
+suite('the mark appears quickly rather than after five minutes');
+check('IDLE_AFTER is thirty seconds', IDLE_AFTER, 30*1000);
+check('and the accessor reports the same figure', idleState().msUntilIdle, IDLE_AFTER);
 
-suite('the screensaver never appears over the panel');
+suite('showing and hiding');
 {
-  idleHide(); panelClose();
-  idleShow();
-  check('it shows when nothing else is open', shown(), true);
-
   idleHide();
-  check('and hides again', shown(), false);
-
-  panelOpen();
-  check('opening the panel marks it open', panelUp(), true);
+  check('hidden to start with', shown(), false);
   idleShow();
-  check('the screensaver refuses to appear underneath it', shown(), false);
-
-  panelClose();
-  check('closing releases the guard', panelUp(), false);
+  check('shows', shown(), true);
   idleShow();
-  check('and it can appear again', shown(), true);
+  check('showing twice is not an error and changes nothing', shown(), true);
   idleHide();
+  check('hides', shown(), false);
 }
 
 suite('activity dismisses it');
@@ -40,13 +29,4 @@ suite('activity dismisses it');
   check('shown', shown(), true);
   idleReset();
   check('any input takes it away', shown(), false);
-}
-
-suite('panelToggle is a toggle');
-{
-  panelClose();
-  panelToggle();
-  check('opens when closed', panelUp(), true);
-  panelToggle();
-  check('closes when open', panelUp(), false);
 }

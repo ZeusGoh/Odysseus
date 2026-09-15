@@ -710,38 +710,10 @@
 
 <!-- Load order matters: definitions first, boot.js last. -->
 <!-- the screensaver: five idle minutes, then the mark, breathing -->
-<div class="idle" id="idle" hidden role="button" tabindex="0" aria-label="Open panel mode">
+<div class="idle" id="idle" hidden aria-hidden="true">
   <div class="idlemark">
     <span class="idleword">ODYSSEUS<span class="idledot"></span></span>
   </div>
-  <p class="idlehint">press to open panel</p>
-</div>
-
-<!-- panel mode: the same numbers, sized to be read from across the room -->
-<div class="panel" id="panel" hidden>
-  <div class="pntop">
-    <span class="pnbrand">ODYSSEUS</span>
-    <span class="grow"></span>
-    <span class="pnlive" id="pn-live">live</span>
-    <span class="pnclock" id="pn-clock">—</span>
-    <button class="pnclose" id="pn-close">Close</button>
-  </div>
-  <div class="pnbody">
-    <div>
-      <div class="pnsym"><b id="pn-sym">—</b></div>
-      <div class="pnquote" id="pn-quote">—</div>
-    </div>
-    <div class="pnpx">
-      <span class="pnprice" id="pn-px">—</span>
-      <span class="pnchg" id="pn-chg">—</span>
-    </div>
-    <div class="pnread">
-      <span class="pnreadtxt" id="pn-read">—</span>
-      <span class="pnscore" id="pn-score"></span>
-    </div>
-    <div class="pnstrip" id="pn-strip"></div>
-  </div>
-  <p class="pnfoot">Width = frame weight · Escape or Close to return</p>
 </div>
 
 <script src="js/indicators.js"></script>

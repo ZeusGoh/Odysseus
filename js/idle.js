@@ -50,5 +50,27 @@ function idleInit(){
       the way of a scroll.                                                     */
   ['mousemove','mousedown','keydown','wheel','touchstart','scroll']
     .forEach(ev => addEventListener(ev, idleReset, {passive:true}));
+
+  /*  The wordmark in the rail brings it up on demand, without waiting out the
+      thirty seconds. It works because click lands after mousedown: the reset
+      above fires first and schedules a fresh timer, then this shows the mark,
+      so the two never fight over the same gesture.                           */
+  const brand = document.querySelector('.brand');
+  if(brand){
+    brand.title = 'Show the mark';
+    brand.setAttribute('role', 'button');
+    brand.setAttribute('tabindex', '0');
+    brand.onclick = idleShow;
+    brand.addEventListener('keydown', e=>{
+      if(e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      /*  Unlike the click route, this is a single event: without stopping it
+          here it would go on to the window listener above, be read as activity,
+          and hide the mark in the same tick it was asked for.                */
+      e.stopPropagation();
+      idleShow();
+    });
+  }
+
   idleReset();
 }

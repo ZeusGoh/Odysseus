@@ -5,7 +5,7 @@
         backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);
         border-bottom:1px solid var(--edge);
         box-shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 12px 28px -18px rgba(0,0,0,.7)}
-  .brand{font-family:var(--mono);font-weight:700;font-size:14px;letter-spacing:.045em;
+  .brand{font-family:var(--mono);font-weight:700;font-size:14px;letter-spacing:.045em;cursor:pointer;
          padding-right:14px;position:relative;white-space:nowrap;
          background:linear-gradient(135deg,#FFFFFF 10%,#9CA6BC 90%);
          -webkit-background-clip:text;background-clip:text;color:transparent}

@@ -1,0 +1,105 @@
+/* idle.css — the screensaver and the panel. Both sit above everything and
+   neither changes the layout underneath. */
+
+  /* ---- the idle screen ---- */
+  .idle{position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;
+        flex-direction:column;gap:26px;cursor:pointer;
+        background:radial-gradient(ellipse 80% 60% at 50% 45%, #0B0E17 0%, #05070C 70%, #03040A 100%);
+        opacity:0;transition:opacity .4s ease}
+  .idle.on{opacity:1}
+  .idle[hidden]{display:none}
+
+  /*  A slow ring behind the mark, on the same cycle as the breath, so the glow
+      reads as coming off the wordmark rather than sitting behind it.         */
+  .idlemark{position:relative;display:flex;align-items:center;justify-content:center}
+  .idlemark::before{content:'';position:absolute;width:420px;height:420px;border-radius:50%;
+        background:radial-gradient(circle, rgba(110,123,255,.13) 0%, rgba(110,123,255,0) 62%);
+        animation:idlehalo 6s ease-in-out infinite}
+
+  .idleword{font-family:var(--mono);font-weight:700;
+        font-size:clamp(30px, 8.5vw, 92px);letter-spacing:.30em;
+        /*  the tracking is generous, so the trailing letter-space would push the
+            word visibly left of centre without this                           */
+        text-indent:.30em;white-space:nowrap;
+        background:linear-gradient(135deg,#FFFFFF 12%,#8E99B4 88%);
+        -webkit-background-clip:text;background-clip:text;color:transparent;
+        animation:breathe 6s ease-in-out infinite}
+
+  .idledot{position:absolute;top:8%;right:-2px;width:9px;height:9px;border-radius:50%;
+        background:var(--focus);box-shadow:0 0 16px 3px rgba(110,123,255,.8);
+        animation:breathedot 6s ease-in-out infinite}
+
+  .idlehint{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+        color:var(--dim);animation:hintfade 6s ease-in-out infinite}
+
+  @keyframes breathe{
+    0%,100%{opacity:.62;transform:scale(1)}
+    50%    {opacity:1;  transform:scale(1.022)}
+  }
+  @keyframes breathedot{
+    0%,100%{opacity:.45;box-shadow:0 0 10px 1px rgba(110,123,255,.5)}
+    50%    {opacity:1;  box-shadow:0 0 22px 5px rgba(110,123,255,.9)}
+  }
+  @keyframes idlehalo{
+    0%,100%{opacity:.5;transform:scale(.92)}
+    50%    {opacity:1; transform:scale(1.06)}
+  }
+  @keyframes hintfade{
+    0%,100%{opacity:.30}
+    50%    {opacity:.70}
+  }
+
+  /*  Someone who has asked for less motion has asked for it here most of all —
+      this is the thing that would be left running in their peripheral vision. */
+  @media (prefers-reduced-motion: reduce){
+    .idleword,.idledot,.idlehint,.idlemark::before{animation:none}
+    .idleword{opacity:.9}
+  }
+
+  /* ---- panel mode ---- */
+  .panel{position:fixed;inset:0;z-index:910;display:flex;flex-direction:column;
+        padding:clamp(20px,4vw,54px);
+        background:radial-gradient(ellipse 90% 70% at 50% 40%, #0A0D15 0%, #05070C 72%, #03040A 100%);
+        opacity:0;transition:opacity .4s ease}
+  .panel.on{opacity:1}
+  .panel[hidden]{display:none}
+
+  .pntop{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .pnbrand{font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.2em;
+        background:linear-gradient(135deg,#FFFFFF 10%,#9CA6BC 90%);
+        -webkit-background-clip:text;background-clip:text;color:transparent}
+  .pntop .grow{flex:1}
+  .pnclock{font-family:var(--mono);font-size:12px;color:var(--mute);letter-spacing:.06em}
+  .pnlive{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+        color:var(--up)}
+  .pnlive.stale{color:var(--pend)}
+  .pnclose{padding:5px 12px;border-radius:20px;font-family:var(--mono);font-size:10px;
+        letter-spacing:.1em;text-transform:uppercase;color:var(--mute);
+        box-shadow:inset 0 0 0 1px var(--edge)}
+  .pnclose:hover{color:var(--ink);background:var(--raise)}
+
+  .pnbody{flex:1;display:flex;flex-direction:column;justify-content:center;gap:clamp(14px,2.4vh,30px)}
+  .pnsym{font-size:clamp(15px,2vw,22px);color:var(--mute);letter-spacing:.02em}
+  .pnsym b{color:var(--ink);font-weight:500}
+  .pnquote{font-family:var(--mono);font-size:11.5px;color:var(--dim);letter-spacing:.1em;
+        text-transform:uppercase;margin-top:4px}
+
+  .pnpx{display:flex;align-items:baseline;gap:clamp(12px,2vw,26px);flex-wrap:wrap}
+  .pnprice{font-family:var(--mono);font-weight:600;line-height:1;
+        font-size:clamp(46px,11vw,132px);letter-spacing:-.02em;color:var(--ink)}
+  .pnchg{font-family:var(--mono);font-size:clamp(18px,3vw,38px);color:var(--mute)}
+  .pnchg.up{color:var(--up)} .pnchg.down{color:var(--down)}
+
+  .pnread{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .pnreadtxt{font-size:clamp(14px,1.9vw,21px);color:var(--ink);font-weight:300}
+  .pnscore{font-family:var(--mono);font-size:clamp(14px,1.9vw,21px);color:var(--mute)}
+  .pnscore.up{color:var(--up)} .pnscore.down{color:var(--down)}
+
+  .pnstrip{display:flex;gap:5px;height:clamp(40px,7vh,74px)}
+  .pnseg{position:relative;flex-basis:0;border-radius:6px;overflow:hidden;
+        box-shadow:inset 0 0 0 1px var(--edge);display:flex;align-items:flex-end;justify-content:center;
+        padding-bottom:7px}
+  .pnseg i{position:absolute;inset:0}
+  .pnseg b{position:relative;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em}
+
+  .pnfoot{font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.06em}

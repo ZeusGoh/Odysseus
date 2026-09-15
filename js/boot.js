@@ -208,6 +208,8 @@ $('mr-clear').onclick = ()=>{ mrForgetChat(); mrRender(); };
 // both agents share one Connection panel, which lives in Logan's view
 $('mr-setup').onclick = ()=>{ setView('logan'); $('lg-settings').hidden = false; };
 
+document.querySelector('.brand').onclick = panelToggle;
+document.querySelector('.brand').title = 'Panel mode';
 $('nav-terminal').onclick = ()=> setView('terminal');
 $('nav-watch').onclick    = ()=> setView('watch');
 
@@ -310,6 +312,7 @@ watch = store.read();
 updateWatchCount();
 renderTrackBtn();
 lgInit();
+idleInit();
 wireSessions(LOGAN, 'lg-newchat');
 wireSessions(MARIA, 'mr-newchat');
 wireSessions(PAUL,  'pl-newchat');

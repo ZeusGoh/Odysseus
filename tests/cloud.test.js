@@ -6,8 +6,8 @@
    case below is a plain call with no mocking.
    part of Odysseus */
 const {load} = require('./harness');
-const app = load(['cloud.js', 'logan.js']);
-const {cloudDecide, cloudParseConfig, CLOUD_KEYS, vlPut, lgIsUserTurn} = app;
+const app = load(['cloud.js']);
+const {cloudDecide, cloudParseConfig, CLOUD_KEYS, CLOUD_DEAD_KEYS, cloudSweepDead, vlPut} = app;
 const storage = app.localStorage;   // the harness's stub, not anything Node provides
 
 /* ---------- cloudDecide ---------- */
@@ -52,17 +52,42 @@ suite('CLOUD_KEYS — caches and secrets');
 {
   const keys = CLOUD_KEYS.map(e=>e.k);
   check('the journal syncs', keys.includes('vl.journal.v1'), true);
-  check("Logan's memory syncs", keys.includes('vl.logan.chat.v1'), true);
   /*  The anomaly log is a record built up over weeks toward a readable sample — one that
       only exists on whichever machine ran the scan never gets there.                     */
   check('the anomaly log syncs', keys.includes('vl.news.anomalies.v1'), true);
   check('and is not treated as a credential', CLOUD_KEYS.find(e=>e.k==='vl.news.anomalies.v1').secret, false);
   check('the coin-name cache never leaves the machine', keys.includes('vl.coins.v2'), false);
-  check('the why cache never leaves the machine', keys.includes('vl.why.v1'), false);
+  /*  The one key written from outside the app: publish.js puts a report under
+      this name, and the app has to be looking for it or it never arrives.    */
+  check('the analyst inbox syncs', keys.includes('vl.analyst.v1'), true);
+  check('the relay address does not — it is this machine\'s', keys.includes('vl.analyst.relay.v1'), false);
+  /*  The agent layer was taken out of the app; its keys are swept, not synced.  */
+  check('no agent key is listed', keys.filter(k=>/chat|logan|maria|paul|watchman|waves/.test(k)), []);
+  check('and every one of them is on the sweep list instead',
+        ['vl.logan.v1','vl.logan.chat.v1','vl.maria.chat.v1','vl.paul.chat.v1','vl.pretcher.chat.v1',
+         'vl.watchman.v1','vl.watchman.log.v1','vl.waves.v1'].every(k=>CLOUD_DEAD_KEYS.includes(k)), true);
+  check('nothing is both synced and swept', keys.filter(k=>CLOUD_DEAD_KEYS.includes(k)), []);
 
   const secrets = CLOUD_KEYS.filter(e=>e.secret).map(e=>e.k).sort();
-  check('exactly the two credential-bearing keys are marked secret',
-        secrets, ['vl.alerts.v1', 'vl.logan.v1']);
+  check('the Telegram token is the only credential left to hold back',
+        secrets, ['vl.alerts.v1']);
+  check('no key is listed twice', new Set(keys).size, keys.length);
+}
+
+suite('cloudSweepDead — what the removed agent layer left behind goes, nothing else does');
+{
+  const m = {};
+  const st = { getItem: k => (k in m ? m[k] : null), setItem: (k,v)=>{ m[k]=String(v); }, removeItem: k => { delete m[k]; } };
+  st.setItem('vl.logan.v1', '{"anthropic":{"key":"sk-old"}}');
+  st.setItem('vl.pretcher.chat.v1', '[]');
+  st.setItem('vl.cloud.backup.vl.waves.v1', '{}');
+  st.setItem('vl.journal.v1', '[{"id":"keep"}]');
+  st.setItem('vl.analyst.relay.v1', '{"url":"http://127.0.0.1:8790"}');
+  const gone = cloudSweepDead(st).sort();
+  check('the dead keys and their backups are removed', gone, ['vl.cloud.backup.vl.waves.v1','vl.logan.v1','vl.pretcher.chat.v1']);
+  check('the journal is untouched', st.getItem('vl.journal.v1'), '[{"id":"keep"}]');
+  check('so is the relay address', st.getItem('vl.analyst.relay.v1'), '{"url":"http://127.0.0.1:8790"}');
+  check('a second sweep finds nothing', cloudSweepDead(st), []);
 }
 
 /* ---------- the write funnel ---------- */
@@ -105,19 +130,3 @@ throws('an empty paste is rejected rather than saved as {}',
        ()=> cloudParseConfig('   '));
 throws('text with no object in it is rejected',
        ()=> cloudParseConfig('go to the console and copy the thing'));
-
-/* ---------- Logan's transcript trimming ---------- */
-
-suite('lgIsUserTurn — an exchange boundary, not just role:user');
-check('Anthropic user text opens an exchange',
-      lgIsUserTurn({role:'user', content:'hello'}), true);
-check('an Anthropic tool_result carrier does not',
-      lgIsUserTurn({role:'user', content:[{type:'tool_result', tool_use_id:'x', content:'{}'}]}), false);
-check('Gemini user text opens an exchange',
-      lgIsUserTurn({role:'user', parts:[{text:'hello'}]}), true);
-check('a Gemini functionResponse carrier does not',
-      lgIsUserTurn({role:'user', parts:[{functionResponse:{name:'read_coin', response:{}}}]}), false);
-check('an assistant turn is never a boundary',
-      lgIsUserTurn({role:'assistant', content:'hi'}), false);
-check('a model turn is never a boundary',
-      lgIsUserTurn({role:'model', parts:[{text:'hi'}]}), false);

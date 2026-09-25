@@ -19,7 +19,7 @@
    to report "nothing found" instead of inventing a headline.
    ============================================================ */
 
-const NEWS_KEY = 'vl.news.v1', WHY_KEY = 'vl.why.v1';
+const NEWS_KEY = 'vl.news.v1';
 
 const newsCfg = Object.assign({
   win:'24h', side:'both', minMove:5, minLiq:10
@@ -31,17 +31,6 @@ function newsSaveCfg(){
 
 /*  Answers are cached per coin per hour per window — clicking the same row
     twice must not cost a second search.                                     */
-let whyCache = (()=>{ try{ return JSON.parse(localStorage.getItem(WHY_KEY)||'{}'); }catch(e){ return {}; } })();
-function whySave(){
-  try{
-    const keys = Object.keys(whyCache);
-    if(keys.length > 60)
-      keys.sort((a,b)=>(whyCache[a].at||0)-(whyCache[b].at||0))
-          .slice(0, keys.length-60).forEach(k=>delete whyCache[k]);
-    localStorage.setItem(WHY_KEY, JSON.stringify(whyCache));
-  }catch(e){}
-}
-
 let newsRaw = [], newsRows = [], newsMkt = null;
 let newsScanning = false, newsAbort = false, newsRan = false;
 let newsAt = 0, newsOpen = null;
@@ -128,7 +117,6 @@ function nvFlow(move, oiChg){
   return {tag:'Long flush', why:'price down, OI down — longs liquidated', cls:'short'};
 }
 
-
 /*  How much of a coin's move the board already accounts for. Three classes,
     not two — a coin up 11% on a board up 6% is neither "the market did it"
     nor "something happened to this coin". It is the market, amplified, and
@@ -182,10 +170,9 @@ async function newsScan(){
         m: { '1h':nvPctOver(candles,1), '4h':nvPctOver(candles,4), '24h':nvPctOver(candles,24) },
         sharp: { '1h':nvSharpest(candles,1), '4h':nvSharpest(candles,4), '24h':nvSharpest(candles,24) },
         hourlyVol: nvMedian(candles.slice(-24).map(c=>c.v)),
-        /*  Kept so the anomaly log can settle its own past checkpoints and read compression off
-            the same sweep: a day of hourly bars for the whole liquid board is a flagged coin's
-            forward price, the board median to measure it against, and the range/volume history
-            the coiled flag needs — no extra request, and no poller. In memory only.          */
+        /*  Kept so the anomaly log can settle its own past checkpoints off the same sweep: a
+            day of hourly bars for the whole liquid board is a flagged coin's forward price and
+            the board median to measure it against — no extra request, no poller. In memory. */
         bars: candles
       });
     }, (d,n)=>{
@@ -222,29 +209,7 @@ async function anomAfterScan(){
   anomScoreFrom(board);
   renderNews();
   renderAnomPanels();
-  await coilAfterScan(at, board);
   renderAnomPanels();
-}
-
-/*  The coiled pass. Compression and the volume read come free off the sweep's own bars, but open
-    interest does not — fillFlow only fetches it for coins that made the movers cut, and a coiled
-    coin by definition has not moved. So the tightest few get one request each, which is where
-    COIL_MAX earns its keep: this is a handful of requests, not a second sweep of the board.   */
-async function coilAfterScan(at, board){
-  const cands = coilCandidates(board).slice(0, COIL_MAX);
-  if(!cands.length) return;
-  if(MARKET === 'linear'){
-    await nvPool(cands, 5, async c=>{
-      const raw = newsRaw.find(r=>r.sym===c.sym);
-      try{
-        const oi = raw ? await nvOpenInterest(raw) : null;
-        c.oiChg = oi ? oi.chg : null;
-      }catch(e){ c.oiChg = null; }        // a coiled flag stands on compression alone if it must
-      return true;
-    });
-  }
-  if(newsAt !== at) return;
-  anomLogCoiled(cands, at);
 }
 
 /*  Filtering and classification are separate from the sweep, so changing the
@@ -624,7 +589,6 @@ function nvRepaintIcons(){
   }catch(e){}
 }
 
-
 /*  Ticker matching is exactly where a naive scraper starts lying. Live proof
     from the feeds: a plain case-insensitive match on FLOCK pulled in "GTA Mod
     Adds Flock Cameras", and a bare match on S hit 26 unrelated headlines. So:
@@ -642,7 +606,6 @@ function nvMentions(text, sym, name){
   }
   return 0;
 }
-
 
 /*  A headline that broke just BEFORE the sharpest hour is a candidate cause.
     One published after it is reporting, not explanation — it still shows, but
@@ -728,51 +691,16 @@ function nvWhyPanel(r){
               ' — checked '+checked+'. Be careful reading that as “nothing happened”: '+
               'coverage thins out fast below BTC/ETH, and a mid-cap doing '+
               nvPct(r.move,0)+' is usually below the line even for a direct search. The cause is more '+
-              'often an exchange listing elsewhere, an unlock, or a squeeze — which is what the '+
-              'web search below is for.</p>';
+              'often an exchange listing elsewhere, an unlock, or a squeeze.</p>';
     }
-  }
-
-  /* 3. the optional written explanation, if a key is on file */
-  const cached = r.why || whyCache[r.sym+'.'+newsCfg.win+'.'+Math.floor(Date.now()/36e5)];
-  if(r.whyBusy){
-    html += '<div class="nvmore"><span class="thinking">Logan is searching the web…</span></div>';
-  }else if(cached && cached.err){
-    html += '<div class="nvmore"><span class="err">'+nvEsc(cached.err)+'</span></div>';
-  }else if(cached && cached.text){
-    html += '<div class="nvmore" style="display:block"><p>'+nvEsc(cached.text)+'</p>';
-    if(cached.srcs && cached.srcs.length)
-      html += '<div class="nvsrc">' + cached.srcs.map(s=>
-        '<a href="'+nvEsc(s.url)+'" target="_blank" rel="noopener">'+nvEsc(s.title)+'</a>'
-      ).join('') + '</div>';
-    html += '</div>';
   }
 
   d.innerHTML = html;
 
-  /*  The button only appears when it can actually do something. No key means a
-      quiet line about what it would add, not an error the user cannot act on. */
-  if(!r.whyBusy && !(cached && cached.text)){
-    const more = document.createElement('div');
-    more.className = 'nvmore';
-    if(lgCfg.anthropicKey){
-      const b = document.createElement('button');
-      b.className = 'nvask';
-      b.textContent = 'Ask Logan to dig';
-      b.onclick = ()=> askLogan(r.sym);
-      more.appendChild(b);
-      const hint = document.createElement('span');
-      hint.className = 'hint';
-      hint.textContent = 'Searches the web and writes it up. Costs a few cents against your API key.';
-      more.appendChild(hint);
-    }else{
-      const hint = document.createElement('span');
-      hint.className = 'hint';
-      hint.textContent = 'Add a Claude API key in the Logan tab (this specific feature needs Claude, not Gemini) and this panel will also search the web and write up the catalyst. Everything above works without one.';
-      more.appendChild(hint);
-    }
-    d.appendChild(more);
-  }
+  /*  There used to be an "Ask Logan to dig" button here that spent a paid Claude
+      call to search the web and write up the catalyst. It went when the agent
+      layer did — the app no longer holds an API key at all. Everything the panel
+      shows below is computed locally from the feed and the tape.             */
   return d;
 }
 
@@ -801,63 +729,6 @@ async function openWhy(sym){
   r.newsBusy = false;
   renderNews();
 }
-
-/*  The paid path, unchanged in spirit: hand the evidence to Claude with web
-    search on. Only reachable once a key is on file.                          */
-async function askLogan(sym){
-  const r = newsRows.find(x=>x.sym===sym);
-  if(!r || r.whyBusy || !lgCfg.anthropicKey) return;
-
-  const bucket = sym+'.'+newsCfg.win+'.'+Math.floor(Date.now()/36e5);
-  if(whyCache[bucket]){ r.why = whyCache[bucket]; renderNews(); return; }
-
-  r.whyBusy = true; renderNews();
-
-  const body = {
-    model: lgCfg.anthropicModel || 'claude-sonnet-5',
-    max_tokens: 1000,
-    system: WHY_SYSTEM,
-    messages: [{role:'user', content: whyPrompt(r)}],
-    tools: [{type:'web_search_20250305', name:'web_search', max_uses:5}]
-  };
-
-  try{
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key': lgCfg.anthropicKey,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body: JSON.stringify(body)
-    });
-    const j = await res.json();
-    if(!res.ok)
-      throw new Error((j && j.error && j.error.message) || ('request failed with '+res.status));
-
-    const parts = j.content || [];
-    const text = parts.filter(c=>c.type==='text').map(c=>c.text).join('\n').trim();
-
-    const srcs = [];
-    const add = (u,t)=>{ if(u && !srcs.some(s=>s.url===u)) srcs.push({url:u, title:t||u}); };
-    parts.forEach(c=>{
-      (c.citations||[]).forEach(ct=>add(ct.url, ct.title));
-      if(c.type==='web_search_tool_result' && Array.isArray(c.content))
-        c.content.forEach(x=>add(x.url, x.title));
-    });
-
-    r.why = {text: text || 'No answer came back.', srcs, at: Date.now()};
-    whyCache[bucket] = r.why; whySave();
-  }catch(e){
-    let hint = 'Could not reach the API: '+e.message;
-    if(isFileOrigin()) hint += '\n\n'+FILE_HINT;
-    r.why = {err:hint};
-  }
-  r.whyBusy = false;
-  renderNews();
-}
-
 
 function renderNews(){
   renderNewsMkt();
@@ -948,7 +819,6 @@ function renderNews(){
     const ask = document.createElement('button');
     ask.className = 'nvask' + (newsOpen===r.sym ? ' on' : '');
     ask.textContent = newsOpen===r.sym ? 'Hide' : 'Why?';
-    ask.disabled = !!r.whyBusy;
     ask.onclick = ()=>{
       if(newsOpen===r.sym){ newsOpen = null; renderNews(); return; }
       openWhy(r.sym);
@@ -1012,8 +882,6 @@ function whyPrompt(r){
     'First: the catalyst, if there is one — name it and say when it broke relative to the sharpest hour above.\n' +
     'Second: whether the positioning data supports that story or argues against it.';
 }
-
-
 
 function buildNewsControls(){
   const chip = (host, items, isOn, pick) => {

@@ -1,6 +1,6 @@
 /* cloud.js — Optional cloud sync. Signs you in and mirrors the app's saved state
-   to your own Firebase project, so the same journal, watchlist, alerts and
-   Logan memory follow you to any machine.
+   to your own Firebase project, so the same journal, watchlist, alerts, anomaly
+   log and analyst reports follow you to any machine.
 
    Everything here is additive. With no Firebase config saved — which is the
    state the app ships in — nothing in this file reaches the network, the
@@ -11,22 +11,19 @@
    part of Odysseus */
 
 /* ---------- what syncs ----------
-   Caches are deliberately absent. vl.why.v1 and vl.coins.v2 are regenerated
-   from the network on demand, are the two largest blobs the app holds, and
-   carry nothing a person would miss. Syncing them would burn quota to move
-   data that rebuilds itself in seconds.
+   Caches are deliberately absent. vl.coins.v2 is regenerated from the network
+   on demand, is the largest blob the app holds, and carries nothing a person
+   would miss. Syncing it would burn quota to move data that rebuilds itself in
+   seconds.
 
-   `secret` marks the two keys that hold credentials — the Telegram bot token
-   and the Claude/Gemini API keys. They are held back unless you ask for them,
-   because "my data is on a server now" is a different promise for a trade
-   journal than it is for a key that can spend money.                        */
+   `secret` marks the one key that holds a credential — the Telegram bot token.
+   It is held back unless you ask for it, because "my data is on a server now"
+   is a different promise for a trade journal than it is for a token that can
+   send messages as you.                                                     */
 const CLOUD_KEYS = [
   {k:'vl.watchlist.v1',   label:'Watchlist',           secret:false},
   {k:'vl.journal.v1',     label:'Journal trades',      secret:false},
   {k:'vl.journal.cfg.v1', label:'Journal settings',    secret:false},
-  {k:'vl.logan.chat.v1',  label:"Logan's memory",      secret:false},
-  {k:'vl.maria.chat.v1',  label:"Maria's memory",      secret:false},
-  {k:'vl.paul.chat.v1',   label:"Paul's memory",       secret:false},
   {k:'vl.news.v1',        label:'News settings',       secret:false},
   /*  The anomaly log syncs for the same reason the journal does: it is a record being built up
       over weeks toward a sample worth reading, and a record that only exists on whichever
@@ -34,10 +31,46 @@ const CLOUD_KEYS = [
       largest non-cache key here — a full 1000 entries is roughly 440KB — which is comfortable
       only because each key gets its own document rather than sharing one 1MB ceiling.       */
   {k:'vl.news.anomalies.v1', label:'Anomaly log',      secret:false},
+  /*  Analyst reports sync because that is the whole delivery mechanism: the
+      two-analyst read runs outside the app — possibly on a different machine
+      entirely, possibly unattended overnight — and mcp/publish.js writes the
+      result straight into this key. Without the sync the report only exists
+      wherever it was generated, which is the one place you are not sitting.
+      It is capped at 50 reports, so it stays small.                         */
+  {k:'vl.analyst.v1',     label:'Analyst reports',    secret:false},
   {k:'vl.fired.v1',       label:'Already-fired alerts',secret:false},
-  {k:'vl.alerts.v1',      label:'Alert settings',      secret:true },
-  {k:'vl.logan.v1',       label:'Logan API keys',      secret:true }
+  {k:'vl.alerts.v1',      label:'Alert settings',      secret:true }
 ];
+
+/*  Keys the app no longer writes. The agent layer — Logan, Maria, Paul,
+    Pretcher, the watch, the wave overlay — was taken out of the app, but its
+    files are still in js/ and its keys were still sitting in localStorage on
+    any browser that ran it, one of them holding a provider API key. Nothing
+    reads them, nothing syncs them; they are swept on start so the browser
+    holds only what the running app uses. The relay address is NOT on this
+    list — it is per machine on purpose and the Analyst view reads it.        */
+const CLOUD_DEAD_KEYS = [
+  'vl.logan.v1', 'vl.logan.chat.v1', 'vl.maria.chat.v1', 'vl.paul.chat.v1',
+  'vl.pretcher.chat.v1', 'vl.watchman.v1', 'vl.watchman.log.v1', 'vl.waves.v1',
+];
+
+function cloudSweepDead(storage, keys){
+  const st = storage || localStorage;
+  const list = keys || CLOUD_DEAD_KEYS;
+  const gone = [];
+  for(const k of list){
+    for(const name of [k, 'vl.cloud.backup.'+k]){
+      let had = false;
+      try{ had = st.getItem(name) != null; }catch(e){}
+      if(!had) continue;
+      try{ st.removeItem(name); gone.push(name); }catch(e){}
+    }
+    if(cloudMeta.local[k]  != null) delete cloudMeta.local[k];
+    if(cloudMeta.synced[k] != null) delete cloudMeta.synced[k];
+  }
+  if(gone.length) cloudSaveMeta();
+  return gone;
+}
 
 const CLOUD_KEY      = 'vl.cloud.v1';        // firebase config + preferences
 const CLOUD_META_KEY = 'vl.cloud.meta.v1';   // per-key local/synced timestamps
@@ -100,7 +133,7 @@ function cloudConfigured(){
 }
 function cloudOn(){ return cloudConfigured() && !!cloudUser; }
 
-// keys in play right now — the secret two only when explicitly opted in
+// keys in play right now — the secret one only when explicitly opted in
 function cloudActiveKeys(){
   return CLOUD_KEYS.filter(e => !e.secret || cloudCfg.syncSecrets);
 }
@@ -184,7 +217,7 @@ async function cloudResume(){
 /* ---------- the sync itself ----------
    One Firestore document per key under users/<uid>/state, rather than one
    document holding everything. A single document would be rewritten in full on
-   every change, would share one 1MB ceiling across the journal and Logan's
+   every change, would share one 1MB ceiling across the journal and the
    transcript, and would turn any two concurrent edits into a whole-state
    conflict instead of a one-key one.                                        */
 function cloudDocRef(key){
@@ -340,6 +373,7 @@ function cloudRender(){
 }
 
 function cloudInit(){
+  cloudSweepDead();
   const box = $('cl-config');
   if(box && cloudCfg.fb) box.value = JSON.stringify(cloudCfg.fb, null, 2);
   const em = $('cl-email');

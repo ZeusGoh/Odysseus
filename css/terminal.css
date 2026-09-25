@@ -1,6 +1,6 @@
 /* terminal.css — Signal modules and the frame matrix. */
   /* ---- signal modules ---- */
-  .duo{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
   .duo .mod{margin-top:0}
   .sig-list{list-style:none}
   .sig-list li{display:grid;grid-template-columns:34px 1fr;gap:11px;align-items:baseline;

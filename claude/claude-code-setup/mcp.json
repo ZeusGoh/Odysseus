@@ -1,0 +1,32 @@
+{
+  "_comment": "Three processes, not one. A Claude Code subagent can only be restricted to a whole MCP server (mcp__<server>), never to individual tools - so the ONLY way the stochastic, news and crowd analysts stay genuinely blind to each other is for each one's data to be absent from the process it talks to. Do not collapse these into a single server entry.",
+  "mcpServers": {
+    "odysseus-stoch": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "./mcp/server.js",
+        "--tools",
+        "stoch"
+      ]
+    },
+    "odysseus-news": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "./mcp/server.js",
+        "--tools",
+        "news"
+      ]
+    },
+    "odysseus-crowd": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "./mcp/server.js",
+        "--tools",
+        "crowd"
+      ]
+    }
+  }
+}

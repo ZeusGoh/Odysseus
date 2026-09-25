@@ -10,7 +10,7 @@
    part of Odysseus */
 
 // how long without input before the mark appears. One constant, easy to move.
-const IDLE_AFTER = 30 * 1000;
+const IDLE_AFTER = 5 * 60 * 1000;
 
 let idleTimer = 0, idleShown = false;
 

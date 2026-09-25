@@ -1,0 +1,41 @@
+{
+  "schema": "odysseus.analyst.v1",
+  "symbol": "SOL",
+  "generatedAt": "2026-09-16T08:00:00.000Z",
+  "stoch": {
+    "analyst": "stochastic",
+    "symbol": "SOL",
+    "call": "bull",
+    "conviction": 62,
+    "horizon": "4H, next 20 hours",
+    "for": ["4H bull cross from overbought grades PLAYABLE: 89% of 19, median +1.79% over 20 hours", "Running with the 200 EMA on 4H and 1W"],
+    "against": ["Thin sample at 19 signals", "1W bull cross grades NEGATIVE: 30% of 33, median -5.12% over 5 weeks", "Fighting BTC on 4 of 5 frames"],
+    "keyNumbers": {"biasScore": 17, "bestSetup": "4H bull from overbought, playable", "hitRate": "89%", "signals": 19, "btcAlignmentPct": -47}
+  },
+  "news": {
+    "analyst": "news",
+    "symbol": "SOL",
+    "call": "neutral",
+    "conviction": 30,
+    "horizon": "next 24-48 hours",
+    "for": ["Open interest flat — no crowded leverage to unwind"],
+    "against": ["Move is market-wide: +1.77% against a board median of +2.38%", "No headline names Solana in the last two days"],
+    "catalyst": {"found": false, "what": null, "source": null, "beforeTheMove": null},
+    "keyNumbers": {"movePct": 1.77, "boardMedianPct": 2.38, "classification": "mkt", "sharpestHourPct": 0.52, "volumeMultiple": 1.0, "flow": "Spot-led", "fundingCrowded": false, "thinBook": false}
+  },
+  "reconciliation": {
+    "agreement": "partial",
+    "direction": "bull",
+    "confidence": 42,
+    "headline": "A tradeable 4H setup with nothing behind it — the indicator has a case, the tape has no story.",
+    "body": [
+      "The stochastic analyst found a genuinely graded 4H setup, but on a 19-signal sample and against a 1W record that has lost money 70% of the time. It is a bounce inside a frame that does not support it.",
+      "The news analyst found nothing at all: the move is market-wide, open interest is flat, and no headline names the coin. That is not bearish, it is empty — there is no catalyst to carry the 4H setup past its own frame."
+    ],
+    "clashes": [
+      "The indicator is leaning bull on 4H while the structural read says the coin did not do anything of its own — SOL moved 1.77% against a board that moved 2.38%. A setup with no story behind it is a scalp, not a position.",
+      "Confidence is split: 62 against 30. Only half the evidence supports taking this."
+    ],
+    "whatWouldChangeIt": "A coin-specific move with rising open interest would turn the news analyst's neutral into a bull and make the 4H setup worth real size."
+  }
+}

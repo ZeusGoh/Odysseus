@@ -1,12 +1,12 @@
-/* cloud.css — the Cloud view. Borrows .mod/.lgset/.lgnote from the Logan panel
+/* cloud.css — the Cloud view. Borrows .mod/.vset/.vnote from the Logan panel
    so the two settings surfaces read as the same kind of thing. */
 
   .clrow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;flex-basis:100%}
-  .lgset [hidden], .clrow [hidden]{display:none}
+  .vset [hidden], .clrow [hidden]{display:none}
 
-  .lgset #cl-signin, .lgset #cl-saveconfig{padding:7px 14px;border-radius:5px;font-size:12px;
+  .vset #cl-signin, .vset #cl-saveconfig{padding:7px 14px;border-radius:5px;font-size:12px;
         background:var(--raise-2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--edge)}
-  .lgset #cl-signin:hover, .lgset #cl-saveconfig:hover{background:var(--raise)}
+  .vset #cl-signin:hover, .vset #cl-saveconfig:hover{background:var(--raise)}
   .clrow button.ghost{padding:7px 12px;border-radius:5px;font-size:12px;color:var(--mute);
         box-shadow:inset 0 0 0 1px var(--edge)}
   .clrow button.ghost:hover{color:var(--ink);background:var(--raise)}
@@ -26,11 +26,11 @@
   .clkeys li.off{color:var(--dim)}
   .clkeys li.off::before{background:var(--edge)}
 
-  /*  .lgset label sets flex-direction:column for the field stacks, and at
+  /*  .vset label sets flex-direction:column for the field stacks, and at
       (0,1,1) it outranks a bare .clcheck — which would stand this checkbox on
-      top of its own text. Matched through .lgset to win the cascade rather
+      top of its own text. Matched through .vset to win the cascade rather
       than by reaching for !important.                                       */
-  .lgset .clcheck{flex-basis:100%;display:flex;flex-direction:row;align-items:center;
+  .vset .clcheck{flex-basis:100%;display:flex;flex-direction:row;align-items:center;
         gap:8px;font-size:11.5px;color:var(--mute);cursor:pointer}
-  .lgset .clcheck input{width:auto;margin:0;flex:none}
-  .lgset .clcheck:hover span{color:var(--ink)}
+  .vset .clcheck input{width:auto;margin:0;flex:none}
+  .vset .clcheck:hover span{color:var(--ink)}

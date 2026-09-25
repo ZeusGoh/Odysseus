@@ -1,0 +1,69 @@
+/* elliott.css — the Waves view: ranked counts, the entry check, and where a
+   count sits in the degree above. */
+
+  .ewintro p{font-size:12.5px;line-height:1.7;color:var(--mute);margin:0;padding:14px 16px}
+  .ewintro b{color:var(--ink);font-weight:500}
+
+  /* the ranked list */
+  .ewhead{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
+          color:var(--dim);background:var(--panel-2)}
+  .ewhead, .ewrow{display:grid;grid-template-columns:34px 1fr 62px 118px;align-items:center;
+                  gap:10px;padding:9px 16px}
+  .ewitem{border-top:1px solid var(--edge)}
+  .ewitem:first-child{border-top:0}
+  /* the leading count gets a rail, so the ranking is legible without reading numbers */
+  .ewrow.lead{box-shadow:inset 2px 0 0 var(--focus)}
+  .ewrank{color:var(--dim);font-size:11px}
+  .ewwhat{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;min-width:0}
+  .ewdir{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;
+         padding:2px 7px;border-radius:999px;background:var(--chip);border:1px solid var(--edge)}
+  .ewdir.up{color:var(--up);border-color:rgba(8,153,129,.35)}
+  .ewdir.down{color:var(--down);border-color:rgba(242,54,69,.35)}
+  .ewlab{font-family:var(--mono);font-size:12.5px;color:var(--ink);letter-spacing:.04em}
+  .ewnow{font-size:11.5px;color:var(--mute)}
+  .ewnow b{color:var(--ink);font-weight:600}
+  .ewscore{font-size:13px;text-align:right;color:var(--mute)}
+  .ewscore.up{color:var(--up)}
+  .ewscore.dim{color:var(--dim)}
+  .ewinval{font-size:11.5px;text-align:right;color:var(--mute)}
+  .ewwhy{padding:0 16px 11px 60px;font-size:11.5px;line-height:1.65;color:var(--dim)}
+
+  /* ruled out */
+  .ewrej{display:flex;gap:12px;align-items:baseline;padding:8px 16px;
+         border-top:1px solid var(--edge);font-size:11.5px;color:var(--dim)}
+  .ewrej:first-child{border-top:0}
+  .ewrej .ewlab{flex:none;width:86px;color:var(--mute)}
+
+  /* entry confirmation */
+  .ewverdict{display:flex;align-items:baseline;gap:12px;padding:14px 16px;flex-wrap:wrap}
+  .ewverdict b{font-family:var(--mono);font-size:12px;letter-spacing:.08em;padding:3px 9px;
+               border-radius:var(--radius-sm);background:var(--chip);border:1px solid var(--edge)}
+  .ewverdict.up b{color:var(--up);border-color:rgba(8,153,129,.4)}
+  .ewverdict.down b{color:var(--down);border-color:rgba(242,54,69,.4)}
+  .ewverdict.pend b{color:var(--pend);border-color:rgba(245,165,36,.4)}
+  .ewverdict span{font-size:12.5px;color:var(--mute);line-height:1.6}
+  .ewchecks{margin:0;padding:0 16px 10px 32px;list-style:disc}
+  .ewchecks li{font-size:12px;line-height:1.7;color:var(--mute)}
+  .ewnote{margin:0;padding:0 16px 14px;font-size:11.5px;color:var(--dim);line-height:1.6}
+
+  /* nesting */
+  .ewnest{display:flex;align-items:baseline;gap:12px;padding:14px 16px;flex-wrap:wrap}
+  .ewnest b{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+            padding:3px 9px;border-radius:999px;background:var(--chip);border:1px solid var(--edge);
+            color:var(--mute)}
+  .ewnest.up b{color:var(--up);border-color:rgba(8,153,129,.35)}
+  .ewnest.down b{color:var(--pend);border-color:rgba(245,165,36,.35)}
+  .ewnest span{font-size:12.5px;color:var(--ink);line-height:1.6}
+
+  /* the subtitle turns amber when the two cases are too close to call — the
+     single most important state this view has */
+  .wsub.warn{color:var(--pend)}
+
+  #ew-frame{padding:4px 8px;border:1px solid var(--edge);border-radius:var(--radius-sm);
+            background:var(--panel-2);font-size:11.5px}
+
+  @media (max-width:760px){
+    .ewhead, .ewrow{grid-template-columns:26px 1fr 48px;gap:8px}
+    .ewhead > :last-child, .ewrow > .ewinval{display:none}
+    .ewwhy{padding-left:16px}
+  }

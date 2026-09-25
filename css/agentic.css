@@ -1,0 +1,59 @@
+/* agentic.css — the plan checklist, the approval card, and the standing-watch feed.
+   Three things the chat log never had to draw before: a list that advances while
+   you watch it, a message that stops and waits for you, and a card nobody asked
+   for. */
+
+  /* ---------- the plan ----------
+     Indented to the same 64px gutter as the tool lines, because it belongs to
+     the same register: this is the agent narrating itself, not speaking. */
+  .agplan{margin-left:64px;padding:10px 12px;border:1px solid var(--edge);
+          border-radius:var(--radius-md);background:var(--panel-2);
+          display:flex;flex-direction:column;gap:5px}
+  .agplanh{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;
+           text-transform:uppercase;color:var(--dim)}
+  .agstep{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;line-height:1.5;
+          color:var(--mute);transition:color .2s}
+  .agtick{width:11px;height:11px;border-radius:50%;flex:none;margin-top:3px;
+          border:1.5px solid var(--faint);box-sizing:border-box;position:relative}
+  .agstep.is-done{color:var(--mute)}
+  .agstep.is-done .agtick{border-color:var(--up);background:var(--up)}
+  /* the tick itself, drawn rather than shipped as a glyph so it inherits the fill */
+  .agstep.is-done .agtick::after{content:'';position:absolute;left:2.5px;top:.5px;
+          width:3px;height:6px;border:solid var(--void);border-width:0 1.5px 1.5px 0;
+          transform:rotate(45deg)}
+  .agstep.is-now{color:var(--ink)}
+  .agstep.is-now .agtick{border-color:var(--focus);animation:agpulse 1.4s ease-in-out infinite}
+  .agstep.is-next{color:var(--dim)}
+  .agplan.done .agstep{color:var(--mute)}
+  @keyframes agpulse{0%,100%{box-shadow:0 0 0 0 rgba(110,123,255,.45)}
+                     50%{box-shadow:0 0 0 4px rgba(110,123,255,0)}}
+
+  /* ---------- the approval card ----------
+     Full width and ringed, unlike everything else in the log, because it is the
+     one thing there that will not move until it is answered. */
+  .agask{margin:2px 0;padding:12px 14px;border:1px solid var(--focus);
+         border-radius:var(--radius-md);background:var(--raise);
+         display:flex;flex-direction:column;gap:10px}
+  .agask.settled{border-color:var(--edge);background:var(--panel-2)}
+  .agaskw{font-size:12.5px;line-height:1.6;color:var(--ink)}
+  .agask.settled .agaskw{color:var(--mute)}
+  .agaskb{display:flex;gap:8px}
+  .agaskb button{padding:5px 14px;font-size:11.5px;border-radius:var(--radius-sm)}
+  .agasks{font-family:var(--mono);font-size:10px;letter-spacing:.04em;color:var(--dim)}
+  .agasks.yes{color:var(--up)}
+  .agasks.no{color:var(--mute)}
+  .agasks.lapsed{color:var(--pend)}
+
+  /* ---------- the standing watch ---------- */
+  .wmcard{padding:12px 14px;border-top:1px solid var(--edge);display:flex;
+          flex-direction:column;gap:7px}
+  .wmcard:first-child{border-top:0}
+  .wmcard.bad .wmbody{color:var(--down)}
+  .wmhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .wmwhen{font-family:var(--mono);font-size:10px;color:var(--dim);flex:none}
+  .wmtags{display:flex;gap:5px;flex-wrap:wrap}
+  .wmtag{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:999px;
+         background:var(--chip);border:1px solid var(--edge);color:var(--mute)}
+  .wmtag.up{color:var(--up);border-color:rgba(8,153,129,.35)}
+  .wmtag.down{color:var(--down);border-color:rgba(242,54,69,.35)}
+  .wmbody{font-size:12.5px;line-height:1.65;color:var(--ink);white-space:pre-wrap}

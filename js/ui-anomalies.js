@@ -3,6 +3,9 @@
    and the raw log underneath it.
    part of Odysseus */
 
+/*  Move flags grade held / faded / reversed. Every grade goes through anomPill,
+    so every grade belongs here — one missing from this map renders as
+    class="anompill undefined", which is invisible until the day it isn't.   */
 const ANOM_GRADE_TONE = {held:'up', faded:'dim', reversed:'down'};
 
 /*  Newest sweep first, but the order WITHIN a sweep left alone — the log is written in rank
@@ -15,7 +18,7 @@ const ANOM_KIND_LABEL = {spec:'Coin-specific', part:'Amplified', mkt:'Market-wid
 
 function anomPill(grade){
   if(!grade) return '';
-  return '<span class="anompill '+ANOM_GRADE_TONE[grade]+'">'+grade+'</span>';
+  return '<span class="anompill '+(ANOM_GRADE_TONE[grade]||'dim')+'">'+grade+'</span>';
 }
 
 /*  The tag a News row wears. It reports the earliest checkpoint that has actually settled, so a
@@ -83,8 +86,7 @@ function renderAnomTrack(){
 function renderAnomLog(){
   const box = $('anomlog');
   if(!box) return;
-  // coiled flags share the log but not these columns — they have no move and no direction
-  const moves = anomalies.filter(e=>e.type!=='coiled');
+  const moves = anomalies;
   if(!moves.length){ box.innerHTML = '<div class="loading">No flags logged yet.</div>'; return; }
   box.innerHTML = anomNewestFirst(moves).slice(0, 25).map(e=>{
     const tone = e.dir==='up' ? 'up' : 'down';
@@ -104,86 +106,17 @@ function renderAnomLog(){
   }).join('');
 }
 
-const COIL_SIG_LABEL = {compression:'tight', volume:'vol', oi:'OI'};
-
-function renderCoiled(){
-  const box = $('coilrows');
-  if(!box) return;
-  const rows = anomNewestFirst(anomalies.filter(e=>e.type==='coiled')).slice(0, 20);
-  if(!rows.length){
-    box.innerHTML = '<div class="loading">No coin on the board is showing a compressed range '+
-                    'right now. Coiled flags appear here after a scan.</div>';
-    return;
-  }
-  box.innerHTML = rows.map(e=>{
-    const sigs = (e.signals||[]).map(s=>'<span class="coilsig">'+COIL_SIG_LABEL[s]+'</span>').join('');
-    return '<div class="mrow coilrow" title="'+nvEsc(coilTitle(e))+'">'+
-      '<div class="anomsym">'+nvIcon(e.sym)+'<b>'+nvEsc(e.sym)+'</b><em>'+nvAgo(e.at)+'</em></div>'+
-      '<div class="hnum'+(e.compression<=0.4?' up':'')+'">'+e.compression+'×</div>'+
-      '<div class="hnum dim">'+(e.volRatio==null?'·':e.volRatio+'×')+'</div>'+
-      '<div class="hnum dim">'+(e.oiChg==null?'·':(e.oiChg>0?'+':'')+e.oiChg+'%')+'</div>'+
-      '<div class="coilsigs">'+sigs+'</div>'+
-      ANOM_CHECKS.map(h=>{
-        const c = e.checks[h];
-        if(!c) return '<div><span class="hnum dim">·</span></div>';
-        if(c.state==='expired') return '<div><span class="thin">missed</span></div>';
-        return '<div>'+anomPill(c.grade)+'</div>';
-      }).join('')+
-      '</div>';
-  }).join('');
-}
-
-function coilTitle(e){
-  const lines = ['Flagged '+nvAgo(e.at)+' — range down to '+e.compression+
-                 '× its own recent normal'+
-                 (e.volRatio!=null ? ', volume '+e.volRatio+'× while price sat still' : '')+
-                 (e.oiChg!=null ? ', open interest '+(e.oiChg>0?'+':'')+e.oiChg+'%' : '')+'.'];
-  ANOM_CHECKS.forEach(h=>{
-    const c = e.checks[h];
-    if(!c) lines.push('+'+h+'h: not settled yet');
-    else if(c.state==='expired') lines.push('+'+h+'h: missed — the scan window had rolled past it');
-    else lines.push('+'+h+'h: '+c.grade+' · range '+c.post+'% against '+c.pre+'% before ('+
-                    c.ratio+'×)'+(c.move!=null ? ', broke '+(c.move>0?'up ':'down ')+
-                    Math.abs(c.move)+'%' : ''));
-  });
-  lines.push('This claims an expansion is due, not a direction — so it is scored on whether the '+
-             'range widened, either way, against this coin\'s own range before the flag.');
-  return lines.join('\n');
-}
-
 function renderAnomPanels(){
-  // the track record and the flag log moved to Anomaly History; this view keeps
-  // the live sweep and the coiled watch, and renders only those
-  renderCoiled();
-  const cs = anomCoiledStats(anomalies);
-  const coilNote = $('coilnote');
-  if(coilNote){
-    const scored = ANOM_CHECKS.some(h=>cs.byH[h].n);
-    const rates = ANOM_CHECKS.filter(h=>cs.byH[h].n)
-      .map(h=>'+'+h+'h '+cs.byH[h].expandedPct+'% (n='+cs.byH[h].n+')').join(' · ');
-    coilNote.textContent = cs.n
-      ? (scored ? 'Expanded: '+rates+'. ' : cs.n+' coiled flags logged, none aged past the first '+
-         'checkpoint yet. ')+
-        'This is a probability tilt, not a warning siren — it says a coin '+
-        'looks coiled, never that it is about to move, and never which way. Compression is read '+
-        'off range (ATR), never off the stochastic, which normalises range away and throws false '+
-        'crosses precisely when a range tightens. Genuinely coiled coins are a minority of the '+
-        'board on any day, so reaching '+ANOM_THIN+' scored flags takes weeks, not days.'
-      : 'Nothing coiled yet. Compression is read off range (ATR) rather than the stochastic, '+
-        'which normalises range away and cannot see compression at all.';
-  }
+  // the track record and the flag log live in Anomaly History; this view keeps
+  // the live sweep and nothing else
 }
 
-
-/*  The track record and the flag log moved to the Anomaly History view; the
-    Anomaly view keeps the live sweep and the coiled watch. Two surfaces, two
-    render entry points, one log behind both.                                */
 function renderAnomHistory(){
   renderAnomTrack();
   renderAnomLog();
   const el = $('ah-count');
   if(el){
-    const moves = anomalies.filter(e=>e.kind!=='coil').length;
+    const moves = anomalies.length;
     el.textContent = moves ? moves+' flag'+(moves===1?'':'s')+' logged' : 'nothing logged yet';
   }
   const note = $('anomnote');

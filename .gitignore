@@ -14,3 +14,21 @@ node_modules/
 login.txt
 .env
 *.key
+
+# analyst reports are generated output; the example is the schema reference
+verdicts/*.json
+!verdicts/example.json
+verdicts/watch.log
+verdicts/.watch-state.json
+verdicts/.track-record-stoch.json
+verdicts/.track-record-news.json
+verdicts/.track-record-crowd.json
+verdicts/.bybit-key.json
+verdicts/.last-pass.json
+verdicts/.chat.json
+verdicts/.watch-lock.json
+
+# generated at runtime on this machine — logs, the desk brief, and Claude Code local settings
+verdicts/*.log
+verdicts/.desk-brief.md
+.claude/settings.local.json

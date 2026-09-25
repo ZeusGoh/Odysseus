@@ -22,6 +22,9 @@ $('waddbtn').onclick = ()=>{
 $('nav-scan').onclick  = ()=> setView('scan');
 $('sc-run').onclick    = runScan;
 $('sc-stop').onclick   = ()=>{ scanAbort = true; };
+$('nav-crowd').onclick = ()=> setView('crowd');
+$('cr-run').onclick    = runCrowd;
+$('cr-stop').onclick   = ()=>{ crowdAbort = true; };
 $('nav-alerts').onclick = ()=> setView('alerts');
 $('a-on').onchange = e=> armAlerts(e.target.checked);
 $('a-save').onclick = ()=>{
@@ -50,31 +53,48 @@ $('nav-sessions').onclick = ()=> setView('sessions');
 
 /* ---------- journal ---------- */
 $('nav-journal').onclick = ()=> setView('journal');
+$('nav-analyst').onclick = ()=> setView('analyst');
+$('nav-anhist').onclick  = ()=> setView('anhist');
 $('j-new').onclick = ()=> jOpenForm();
 $('j-cancel').onclick = ()=>{ $('j-form').hidden = true; };
 $('j-save').onclick = jSaveForm;
 $('j-refresh').onclick = ()=> jRefreshPrices(($('j-sym').value||'').trim().toUpperCase() || undefined);
+$('j-import').onclick = ()=> $('j-import-file').click();
+$('j-import-file').addEventListener('change', async e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const parsed = JSON.parse(await file.text());
+    const list = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.trades) ? parsed.trades : null);
+    if(!list) throw new Error('that file doesn\'t look like a trades export');
+    const r = jImportTrades(list);
+    $('jnote').textContent = r.added
+      ? 'Imported '+r.added+' trade'+(r.added===1?'':'s')+' from Bybit'+
+        (r.skipped ? ' ('+r.skipped+' already in the journal).' : '.')
+      : 'Nothing new — '+(r.skipped ? r.skipped+' trade'+(r.skipped===1?'':'s')+' already logged.' : 'the file had no usable trades.');
+    renderJournal();
+  }catch(err){
+    $('jnote').textContent = 'Could not read that file: '+err.message;
+  }
+  e.target.value = '';
+});
 document.querySelectorAll('#j-dir button').forEach(b=>{
   b.onclick = ()=> jSetDir(b.dataset.dir);
 });
 $('j-sym').addEventListener('input', jUpdateVerdictPreview);
+$('j-sym').addEventListener('input', jSyncSource);
 $('j-frame').addEventListener('change', jUpdateVerdictPreview);
 $('j-entrytime').addEventListener('change', jUpdateVerdictPreview);
 $('j-entry').addEventListener('input', jFillSuggestedSize);
 $('j-inval').addEventListener('input', jFillSuggestedSize);
-/*  The account, the percentage and the dollar amount are one setting wearing
-    three hats. Editing any of them re-derives the others and re-states the
-    working, so the panel can never show a risk it is not actually using.     */
-$('j-account').addEventListener('input', ()=>{ jSyncRisk('pct'); });
-$('j-riskpct').addEventListener('input', ()=>{ jSyncRisk('pct'); });
-$('j-riskusd').addEventListener('input', ()=>{ jSyncRisk('usd'); });
-['j-account','j-riskpct','j-riskusd'].forEach(id=>{
-  $(id).addEventListener('change', ()=>{
-    jCfg.account = parseFloat($('j-account').value) || jCfg.account;
-    jCfg.riskPct = parseFloat($('j-riskpct').value) || jCfg.riskPct;
-    jCfg.riskUsd = parseFloat($('j-riskusd').value) || jCfg.riskUsd;
-    jSaveCfg();
-  });
+// the size box is the trade — typing in it states what that quantity is
+// worth and risks, live. A risk amount only ever suggests INTO an empty size
+// box (jFillSuggestedSize's own rule), same as entry/invalidation doing so.
+$('j-size').addEventListener('input', jRenderSizeWork);
+$('j-riskusd').addEventListener('input', jFillSuggestedSize);
+$('j-riskusd').addEventListener('change', ()=>{
+  const v = parseFloat($('j-riskusd').value);
+  if(v > 0){ jCfg.riskUsd = v; jSaveCfg(); }
 });
 // one delegated listener per table rather than re-binding on every render
 $('j-open-rows').addEventListener('click', e=>{
@@ -100,114 +120,16 @@ $('j-closed-rows').addEventListener('click', e=>{
   if(b.classList.contains('jreopen')){ jReopen(id); renderJournal(); }
   else if(b.classList.contains('jdel')){ jDelete(id); renderJournal(); }
 });
-$('j-account').value = jCfg.account;
-$('j-riskpct').value = jCfg.riskPct;
-$('j-riskusd').value = jCfg.riskUsd;
+$('j-riskusd').value = jCfg.riskUsd || '';
 jRenderSizeWork();
 renderJournal();
-$('nav-logan').onclick = ()=> setView('logan');
-$('lg-offbtn').onclick = ()=>{
-  const b=$('lg-settings'); b.hidden=false;
-  $({anthropic:'lg-key', gemini:'lg-gkey', openrouter:'lg-orkey'}[lgCfg.provider] || 'lg-key').focus();
-};
-document.querySelectorAll('#lg-provider button').forEach(b=>{
-  b.onclick = ()=> lgShowProviderFields(b.dataset.provider);
-});
-$('lg-send').onclick = ()=>{ const t=$('lg-text'); lgSend(t.value); t.value=''; t.style.height='auto'; };
-$('lg-text').addEventListener('keydown', e=>{
-  if(e.key==='Enter' && !e.shiftKey){
-    e.preventDefault();
-    const t=$('lg-text'); lgSend(t.value); t.value=''; t.style.height='auto';
-  }
-});
-$('lg-text').addEventListener('input', e=>{
-  e.target.style.height='auto';
-  e.target.style.height = Math.min(130, e.target.scrollHeight)+'px';
-});
-$('lg-clear').onclick = ()=>{ lgForgetChat(); lgRender(); };
-$('lg-setup').onclick = ()=>{ const b=$('lg-settings'); b.hidden = !b.hidden; };
-$('lg-save').onclick = ()=>{
-  const chosen = document.querySelector('#lg-provider button[aria-pressed="true"]');
-  const wasProvider = lgCfg.provider;
-  lgCfg.provider = (chosen && chosen.dataset.provider) || 'anthropic';
-  lgCfg.anthropicKey = $('lg-key').value.trim();
-  lgCfg.anthropicModel = $('lg-model').value.trim();
-  lgCfg.geminiKey = $('lg-gkey').value.trim();
-  lgCfg.geminiModel = $('lg-gmodel').value.trim();
-  lgCfg.openrouterKey = $('lg-orkey').value.trim();
-  lgCfg.openrouterModel = $('lg-ormodel').value.trim();
-  const ok = lgSaveCfg();
-  /*  The two providers' transcripts are not interchangeable, so switching
-      backends drops the replayable context while leaving the visible chat
-      alone. Logan starts fresh; the conversation stays on screen.          */
-  if(lgCfg.provider !== wasProvider){ Object.values(AGENTS).forEach(ag=>{ ag.api = []; agSaveChat(ag); }); }
-  $('lg-keynote').textContent = ok
-    ? 'Saved in this browser. Sent only to '+lgProviderHost()+'.'
-    : 'This preview cannot save settings, so the key lasts only for this session.';
-  $('lg-settings').hidden = true;
-  // the empty-state copy differs online vs offline, and both agents show it
-  Object.values(AGENTS).forEach(ag=>{ agSetMode(ag); agRender(ag); });
-};
-$('lg-brief').onclick = async ()=>{
-  const text = briefing();
-  try{
-    await navigator.clipboard.writeText(text);
-    $('lg-brief').textContent = 'Copied';
-  }catch(e){
-    // clipboard blocked (common on file://) — put it in the log to copy by hand
-    lgPush('assistant', 'Clipboard is blocked here, so here is the briefing to copy:\n\n'+text);
-    $('lg-brief').textContent = 'In chat';
-  }
-  setTimeout(()=>{ $('lg-brief').textContent = 'Copy briefing'; }, 1800);
-};
-/* ---------- saved chats ----------
-   One delegated listener per agent covers both switching and deleting, and the
-   delete × sits inside the session button, so the guard on it has to come first
-   or clicking × would also switch to the session being removed.             */
-function wireSessions(ag, newBtnId){
-  $(newBtnId).onclick = ()=> agNewSession(ag);
-  $(ag.dom.sessions).addEventListener('click', e=>{
-    const del = e.target.closest('[data-del]');
-    if(del){ e.stopPropagation(); agDeleteSession(ag, del.dataset.del); return; }
-    const b = e.target.closest('[data-sess]');
-    if(b) agSwitchSession(ag, b.dataset.sess);
-  });
-}
-
-/* ---------- Paul ---------- */
-$('nav-paul').onclick = ()=> setView('paul');
+buildBybitControls();
+foldInit();                       // every panel gets its chevron, folded ones stay folded
+/* ---------- structure views ---------- */
 $('nav-anomhist').onclick = ()=> setView('anomhist');
-$('pl-send').onclick = ()=>{ const t=$('pl-text'); plSend(t.value); t.value=''; t.style.height='auto'; };
-$('pl-text').addEventListener('keydown', e=>{
-  if(e.key==='Enter' && !e.shiftKey){
-    e.preventDefault();
-    const t=$('pl-text'); plSend(t.value); t.value=''; t.style.height='auto';
-  }
-});
-$('pl-text').addEventListener('input', e=>{
-  e.target.style.height='auto';
-  e.target.style.height = Math.min(130, e.target.scrollHeight)+'px';
-});
-$('pl-clear').onclick = ()=>{ plForgetChat(); plRender(); };
-$('pl-setup').onclick = ()=>{ setView('logan'); $('lg-settings').hidden = false; };
 
-/* ---------- Maria ---------- */
-$('nav-maria').onclick = ()=> setView('maria');
-$('mr-send').onclick = ()=>{ const t=$('mr-text'); mrSend(t.value); t.value=''; t.style.height='auto'; };
-$('mr-text').addEventListener('keydown', e=>{
-  if(e.key==='Enter' && !e.shiftKey){
-    e.preventDefault();
-    const t=$('mr-text'); mrSend(t.value); t.value=''; t.style.height='auto';
-  }
-});
-$('mr-text').addEventListener('input', e=>{
-  e.target.style.height='auto';
-  e.target.style.height = Math.min(130, e.target.scrollHeight)+'px';
-});
-$('mr-clear').onclick = ()=>{ mrForgetChat(); mrRender(); };
-// both agents share one Connection panel, which lives in Logan's view
-$('mr-setup').onclick = ()=>{ setView('logan'); $('lg-settings').hidden = false; };
-
+$('nav-btc').onclick      = ()=> setView('btc');
+buildBtcControls();
 $('nav-terminal').onclick = ()=> setView('terminal');
 $('nav-watch').onclick    = ()=> setView('watch');
 
@@ -309,11 +231,7 @@ nvLoadCoins();
 watch = store.read();
 updateWatchCount();
 renderTrackBtn();
-lgInit();
 idleInit();
-wireSessions(LOGAN, 'lg-newchat');
-wireSessions(MARIA, 'mr-newchat');
-wireSessions(PAUL,  'pl-newchat');
 cloudInit();
 buildScanControls();
 buildHistHeads();
@@ -325,6 +243,11 @@ buildPicker();
 buildSymbolPicker();
 setInterval(()=>{ if(view==='watch') scanWatch(); }, 15000);
 load();
+lsrShow();
+oicvdShow();
+crowdTermShow();
+// the positioning chart is heavy (deep history, a chart library) — it loads when its panel is opened
+$('crowdchart').addEventListener('fold', e => { if(e.detail.folded) cxDispose(); else if(ctState.data) crowdTermChartShow(); });
 refreshTicker();
 ensureBtc(true);
 setInterval(()=>ensureBtc(), 30000);

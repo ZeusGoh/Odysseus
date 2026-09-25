@@ -63,6 +63,15 @@
   .mod > header h2{font-size:12px;font-weight:600;letter-spacing:-.01em}
   .mod > header h2 em{font-style:normal;color:var(--mute);font-weight:400;margin-left:4px}
   .mod > header p{font-size:11px;color:var(--mute)}
+  /* ---- folding: the chevron at the end of every panel header ---- */
+  .mod > header .fold{margin-left:auto;flex:none;display:inline-flex;align-items:center;justify-content:center;
+        width:22px;height:22px;border-radius:var(--radius-sm);color:var(--dim);align-self:center}
+  .mod > header .fold:hover{background:var(--raise);color:var(--ink)}
+  .mod > header .fold svg{transition:transform .18s ease}
+  .mod.folded > header .fold svg{transform:rotate(-90deg)}
+  .mod.folded > header{border-bottom:0}
+  .mod.folded > :not(header){display:none}
+  .mod.folded > header h2:after{content:" · hidden";font-weight:400;color:var(--dim)}
 
   /* ---- market bar (hero) ---- */
   .market{display:grid;grid-template-columns:minmax(300px,1fr) minmax(300px,1fr);gap:34px;

@@ -7,8 +7,8 @@ const {IDLE_AFTER, idleShow, idleHide, idleReset, idleState} = app;
 // module-level flags are snapshotted by the harness, so read them live
 const shown = ()=> idleState().idleShown;
 
-suite('the mark appears quickly rather than after five minutes');
-check('IDLE_AFTER is thirty seconds', IDLE_AFTER, 30*1000);
+suite('the mark appears after five minutes of no input');
+check('IDLE_AFTER is five minutes', IDLE_AFTER, 5*60*1000);
 check('and the accessor reports the same figure', idleState().msUntilIdle, IDLE_AFTER);
 
 suite('showing and hiding');

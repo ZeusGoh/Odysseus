@@ -16,7 +16,7 @@
     past a typical traverse, 7 for whether it kept going.
 
     Everything downstream reads this array — both history tables, their headers
-    and grid widths, Logan's context, and the live badge on each cross — so
+    and grid widths, and the live badge on each cross — so
     changing it here changes all of them. Nothing hardcodes a horizon.        */
 const HORIZONS = [1, 3, 5, 7];
 
@@ -100,7 +100,12 @@ function replayCrosses(candles, k, d, opts){
         have had. It has to be confirmed at or before the cross bar, settled
         rather than still forming, and recent enough to still be the reason.  */
     const backed = divs.some(x=>{
-      if(x.dir !== p.dir || x.pending) return false;
+      /*  Hidden divergences are left out on purpose: "backed" has meant a
+          regular, reversal-shaped divergence since the record began, and the
+          uplift figures are measured against that. Letting the continuation
+          shape count would quietly change what every historical grade means.
+          Score it separately if it ever earns its own column.             */
+      if(x.dir !== p.dir || x.pending || x.hidden) return false;
       const known = divKnownAt(x);
       return known <= p.i && (p.i - known) <= 3;
     });

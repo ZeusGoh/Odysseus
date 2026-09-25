@@ -1,0 +1,52 @@
+{
+  "name": "odysseus-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Read-only MCP server exposing Odysseus's own stochastic/verdict and structural/news reads of the Bybit market.",
+  "license": "UNLICENSED",
+  "main": "server.js",
+  "bin": {
+    "odysseus-mcp": "server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {},
+  "scripts": {
+    "start": "node server.js",
+    "start:http": "node server.js --http",
+    "start:stoch": "node server.js --tools stoch",
+    "start:news": "node server.js --tools news",
+    "check": "node check.js",
+    "check:live": "node check.js --live",
+    "publish": "node publish.js",
+    "watch": "node watch.js",
+    "watch:dry": "node watch.js --dry-run",
+    "score": "node score.js",
+    "history": "node history.js",
+    "postmortem": "node postmortem.js",
+    "import:bybit": "node bybit-import.js",
+    "import:bybit:dry": "node bybit-import.js --dry-run",
+    "panel": "node panel.js",
+    "test": "node ../tests/run.js mcp"
+  },
+  "files": [
+    "server.js",
+    "protocol.js",
+    "engine.js",
+    "client.js",
+    "watchlist.json",
+    "check.js",
+    "publish.js",
+    "watch.js",
+    "watch.cmd",
+    "score.js",
+    "history.js",
+    "postmortem.js",
+    "bybit.js",
+    "bybit-import.js",
+    "panel.js",
+    "relay-hidden.vbs",
+    "README.md"
+  ]
+}

@@ -4,10 +4,11 @@
 /* ---------- nav menu ---------- */
 // what the collapsed nav trigger calls each view — it is the only place the current
 // view is named on screen now that the buttons live in a dropdown
-const VIEW_LABELS = {terminal:'Terminal', watch:'Watchlist', scan:'Scanner', news:'Anomaly',
-                     alerts:'Alerts', hist:'History', sessions:'Sessions',
-                     journal:'Journal', logan:'Logan', maria:'Maria', paul:'Paul',
-                     anomhist:'Anomaly History', cloud:'Cloud'};
+const VIEW_LABELS = {btc:'Bitcoin', terminal:'Terminal', watch:'Watchlist', scan:'Scanner', crowd:'Crowd', news:'Anomaly',
+                     alerts:'Alerts', hist:'Backtest', sessions:'Sessions',
+                     journal:'Journal', anomhist:'Anomaly History',
+                     cloud:'Cloud',
+                     analyst:'Analyst', anhist:'Analyst History'};
 
 // no argument toggles; true/false forces
 function navOpen(on){
@@ -19,52 +20,61 @@ function navOpen(on){
 
 /* ---------- watchlist ---------- */
 function setView(next){
+  // the Crowd terminal lives on the Terminal now; a link to it lands on that panel
+  const jumpTo = next==='crowdterm' ? 'crowdpanel' : null;
+  if(jumpTo) next = 'terminal';
   view = next;
+  $('btcview').hidden      = next!=='btc';
   $('terminalview').hidden = next!=='terminal';
   $('watchview').hidden    = next!=='watch';
-  $('loganview').hidden    = next!=='logan';
-  $('mariaview').hidden    = next!=='maria';
-  $('paulview').hidden     = next!=='paul';
   $('anomhistview').hidden = next!=='anomhist';
   $('scanview').hidden     = next!=='scan';
+  $('crowdview').hidden    = next!=='crowd';
   $('histview').hidden     = next!=='hist';
   $('sessionsview').hidden = next!=='sessions';
   $('alertsview').hidden   = next!=='alerts';
   $('newsview').hidden     = next!=='news';
   $('journalview').hidden  = next!=='journal';
+  $('analystview').hidden  = next!=='analyst';
+  $('anhistview').hidden   = next!=='anhist';
   $('cloudview').hidden    = next!=='cloud';
   $('scanview').hidden     = next!=='scan';
+  $('nav-btc').setAttribute('aria-pressed', next==='btc');
   $('nav-terminal').setAttribute('aria-pressed', next==='terminal');
   $('nav-watch').setAttribute('aria-pressed', next==='watch');
-  $('nav-logan').setAttribute('aria-pressed', next==='logan');
-  $('nav-maria').setAttribute('aria-pressed', next==='maria');
-  $('nav-paul').setAttribute('aria-pressed', next==='paul');
   $('nav-anomhist').setAttribute('aria-pressed', next==='anomhist');
   $('nav-scan').setAttribute('aria-pressed', next==='scan');
+  $('nav-crowd').setAttribute('aria-pressed', next==='crowd');
   $('nav-hist').setAttribute('aria-pressed', next==='hist');
   $('nav-sessions').setAttribute('aria-pressed', next==='sessions');
   $('nav-alerts').setAttribute('aria-pressed', next==='alerts');
   $('nav-news').setAttribute('aria-pressed', next==='news');
   $('nav-journal').setAttribute('aria-pressed', next==='journal');
+  $('nav-analyst').setAttribute('aria-pressed', next==='analyst');
+  $('nav-anhist').setAttribute('aria-pressed', next==='anhist');
   $('nav-cloud').setAttribute('aria-pressed', next==='cloud');
   $('nav-scan').setAttribute('aria-pressed', next==='scan');
   $('navlabel').textContent = VIEW_LABELS[next] || next;
   navOpen(false);                  // picking a view is the end of the menu's job
-  if(next==='watch'){ renderWatch(); scanWatch(); }
-  else if(next==='logan'){ lgRender(); $('lg-text').focus(); }
-  else if(next==='maria'){ mrRender(); $('mr-text').focus(); }
-  else if(next==='paul'){ plRender(); $('pl-text').focus(); }
+  if(next==='btc'){ btcShow(); }
+  else if(next==='watch'){ renderWatch(); scanWatch(); }
   else if(next==='anomhist'){ renderAnomHistory(); }
   else if(next==='cloud'){ cloudRender(); }
   else if(next==='scan'){ buildScanControls(); renderScan(scanRows.length); }
+  else if(next==='crowd'){ buildCrowdControls(); renderCrowd(); }
   else if(next==='hist'){ buildHistScope(); buildHistory(); }
   else if(next==='sessions'){ renderSessions(); }
   else if(next==='alerts'){ buildAlertControls(); renderAlertLog(); }
   else if(next==='news'){ buildNewsControls(); renderNews(); renderAnomPanels();
                           if(!newsRan) newsScan(); }
-  else if(next==='journal'){ renderJournal(); jRefreshPrices(); }
+  else if(next==='journal'){ renderJournal(); jRefreshPrices(); bybitShow(); }
+  else if(next==='analyst'){ buildAnalystControls(); renderAnalyst(); }
+  // the history reads through the same relay poll the Analyst view runs, so
+  // entering it wires those controls the same way and asks for a fresh copy
+  else if(next==='anhist'){ buildAnalystControls(); anRelay.histAt = 0; analystRelayTick(); renderAnalystHistory(); }
   else if(next==='scan'){ /* results persist between visits */ }
-  else { buildCharts(); }          // charts need a visible container to size to
+  else { buildCharts(); if(next==='terminal'){ if(typeof lsrShow === 'function') lsrShow(); if(typeof oicvdShow === 'function') oicvdShow(); if(typeof crowdTermShow === 'function') crowdTermShow(); } }   // charts need a visible container to size to
+  if(jumpTo && $(jumpTo)) requestAnimationFrame(()=> $(jumpTo).scrollIntoView({behavior:'smooth', block:'start'}));
 }
 
 function addWatch(code){

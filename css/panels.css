@@ -1,0 +1,31 @@
+/* panels.css — the shared chrome every view header and settings block uses:
+   the button cluster in a view's top-right, and the label/input stack a settings
+   panel is made of.
+
+   These rules lived in logan.css, because the chat panel was the first thing to
+   need them and nothing had pulled them out since. When the agent layer was
+   removed they turned out to be load-bearing for the Scanner, Alerts, Anomaly,
+   Journal and Cloud views, none of which had anything to do with Logan — so
+   they moved here and lost the `lg` prefix, which by then named a file that no
+   longer existed. */
+
+  /* the cluster of buttons and status chips in a view's header */
+  .vtools{display:flex;gap:7px;align-items:center}
+
+  /* a small status chip — "local", "signed in", and the like */
+  .vmode{font-family:var(--mono);font-size:9.5px;padding:3px 7px;border-radius:3px;
+         background:var(--chip);color:var(--mute);box-shadow:inset 0 0 0 1px var(--edge)}
+  .vmode.api{color:var(--up);box-shadow:inset 0 0 0 1px rgba(8,153,129,.3)}
+
+  /* a settings block: fields laid out in a row, wrapping, bottom-aligned */
+  .vset{padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+  /*  Every direct label is a field stack — caption above its control. This is
+      the rule the Cloud view's checkbox has to fight (see cloud.css), because at
+      (0,1,1) it outranks a bare class selector.                               */
+  .vset label{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--mute)}
+  .vset [hidden]{display:none}
+  .vset input{width:250px;padding:7px 10px;font-size:12px;color:var(--ink);font-family:var(--mono);
+         background:var(--void);border:1px solid var(--edge);border-radius:5px}
+
+  /* explanatory text under a settings block — always on its own line */
+  .vnote{flex-basis:100%;color:var(--mute);font-size:11px;line-height:1.6}

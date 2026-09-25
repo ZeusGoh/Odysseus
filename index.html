@@ -13,11 +13,13 @@
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/terminal.css">
 <link rel="stylesheet" href="css/views.css">
-<link rel="stylesheet" href="css/logan.css">
+<link rel="stylesheet" href="css/panels.css">
 <link rel="stylesheet" href="css/charts.css">
 <link rel="stylesheet" href="css/news.css">
 <link rel="stylesheet" href="css/journal.css">
 <link rel="stylesheet" href="css/cloud.css">
+<link rel="stylesheet" href="css/analyst.css">
+<link rel="stylesheet" href="css/btc.css">
 <link rel="stylesheet" href="css/idle.css">
 </head>
 <body>
@@ -30,24 +32,27 @@
       <span class="navnow" id="navlabel">Terminal</span>
     </button>
     <nav class="navpanel" id="navpanel" hidden>
-      <p class="navgrp">Market</p>
-      <button id="nav-terminal" aria-pressed="true">Terminal</button>
-      <button id="nav-watch" aria-pressed="false">Watchlist <span class="cnt" id="watch-count">0</span></button>
-      <button id="nav-scan" aria-pressed="false">Scanner</button>
-      <button id="nav-news" aria-pressed="false">Anomaly</button>
-      <p class="navgrp">Research</p>
-      <button id="nav-anomhist" aria-pressed="false">Anomaly History</button>
-      <button id="nav-sessions" aria-pressed="false">Sessions</button>
-      <button id="nav-hist" aria-pressed="false">History</button>
-      <p class="navgrp">Trading</p>
-      <button id="nav-journal" aria-pressed="false">Journal <span class="cnt" id="journal-count">0</span></button>
-      <button id="nav-alerts" aria-pressed="false">Alerts <span class="cnt" id="alert-dot">off</span></button>
-      <p class="navgrp">Agents</p>
-      <button id="nav-logan" aria-pressed="false">Logan</button>
-      <button id="nav-maria" aria-pressed="false">Maria</button>
-      <button id="nav-paul" aria-pressed="false">Paul</button>
-      <p class="navgrp">Account</p>
-      <button id="nav-cloud" aria-pressed="false">Cloud <span class="cnt" id="cloud-dot">local</span></button>
+      <!--  Grouped by the question you walk in with, not by what the code is
+            called. Each button carries one line on what the page is for.   -->
+      <p class="navgrp">Right now</p>
+      <button id="nav-terminal" aria-pressed="true"><span class="navname">Terminal<small>one coin: every frame, the tape, the crowd</small></span></button>
+      <button id="nav-btc" aria-pressed="false"><span class="navname">Bitcoin<small>the BTC desk: stoch, crowd, days, sessions</small></span></button>
+      <p class="navgrp">Find a trade</p>
+      <button id="nav-crowd" aria-pressed="false"><span class="navname">Crowd<small>funding, OI and positioning, all coins</small></span></button>
+      <button id="nav-watch" aria-pressed="false"><span class="navname">Watchlist<small>your coins, side by side</small></span> <span class="cnt" id="watch-count">0</span></button>
+      <button id="nav-scan" aria-pressed="false"><span class="navname">Scanner<small>the market, ranked by setup</small></span></button>
+      <button id="nav-news" aria-pressed="false"><span class="navname">Anomaly<small>what moved abnormally, and why</small></span></button>
+      <button id="nav-alerts" aria-pressed="false"><span class="navname">Alerts<small>Telegram when a setup fires</small></span> <span class="cnt" id="alert-dot">off</span></button>
+      <p class="navgrp">Desk</p>
+      <button id="nav-analyst" aria-pressed="false"><span class="navname">Analyst<small>the three analysts and their calls</small></span> <span class="cnt" id="analyst-count">0</span></button>
+      <button id="nav-journal" aria-pressed="false"><span class="navname">Journal<small>your trades, live and closed</small></span> <span class="cnt" id="journal-count">0</span></button>
+      <p class="navgrp">Records</p>
+      <button id="nav-anhist" aria-pressed="false"><span class="navname">Analyst History<small>every call, graded</small></span></button>
+      <button id="nav-hist" aria-pressed="false"><span class="navname">Backtest<small>has a cross been worth taking?</small></span></button>
+      <button id="nav-sessions" aria-pressed="false"><span class="navname">Sessions<small>Asia, London, New York</small></span></button>
+      <button id="nav-anomhist" aria-pressed="false"><span class="navname">Anomaly History<small>did the flags mean anything?</small></span></button>
+      <p class="navgrp">Settings</p>
+      <button id="nav-cloud" aria-pressed="false"><span class="navname">Cloud<small>sync between devices</small></span> <span class="cnt" id="cloud-dot">local</span></button>
     </nav>
   </div>
   <div class="symwrap">
@@ -102,6 +107,16 @@
 
   <div class="err" id="err" hidden></div>
 
+
+  <section class="mod">
+    <header><h2>Frame matrix</h2><p>stochastic 5,3,3</p></header>
+    <div class="mrow mhead">
+      <span>Frame</span><span>Signal</span><span>Age</span>
+      <span>%K / %D</span><span>Spread</span><span>Zone</span><span>200</span><span>Divergence</span>
+    </div>
+    <div class="matrix" id="rows"><div class="loading">Fetching data</div></div>
+  </section>
+
   <div class="duo">
     <section class="mod">
       <header><h2>Confirmed</h2><p>settled on closed bars</p></header>
@@ -113,13 +128,68 @@
     </section>
   </div>
 
-  <section class="mod">
-    <header><h2>Frame matrix</h2><p>stochastic 5,3,3</p></header>
-    <div class="mrow mhead">
-      <span>Frame</span><span>Signal</span><span>Age</span>
-      <span>%K / %D</span><span>Spread</span><span>Zone</span><span>200</span><span>Divergence</span>
+  <section class="mod" id="lsr">
+    <header>
+      <h2>Long / short ratio across exchanges</h2>
+      <p id="lsr-sub">taker buy against taker sell volume, exchange by exchange</p>
+      <div class="lsrwin" id="lsr-win" role="group" aria-label="window">
+        <button type="button" data-lsr-win="1h">1h</button><button type="button" data-lsr-win="4h" class="on">4h</button><button type="button" data-lsr-win="24h">24h</button>
+      </div>
+    </header>
+    <div id="lsr-total"><div class="loading">Reading taker volume on every exchange…</div></div>
+    <p class="lsrread" id="lsr-read"></p>
+    <div class="lsrsparkwrap" id="lsr-spark"></div>
+    <div class="mrow lsrhrow">
+      <span>Exchange</span><span>Long / short</span><span>Long</span><span>Short</span><span></span>
     </div>
-    <div class="matrix" id="rows"><div class="loading">Fetching data</div></div>
+    <div id="lsr-rows"></div>
+    <p class="wnote" id="lsr-note"></p>
+  </section>
+
+  <section class="mod" id="oicvd">
+    <header>
+      <h2>Open interest &amp; CVD</h2>
+      <p id="oc-sub">price, open interest, perpetual CVD and spot CVD on one axis</p>
+      <span class="ochover" id="oc-hover"></span>
+      <div class="lsrwin" id="oc-win" role="group" aria-label="window">
+        <button type="button" data-oc-win="24h" class="on">24h</button><button type="button" data-oc-win="3d">3d</button><button type="button" data-oc-win="7d">7d</button><button type="button" data-oc-win="30d">30d</button>
+      </div>
+    </header>
+    <div class="ocpanes" id="oc-panes"><div class="loading">Loading open interest and the tape…</div></div>
+    <p class="lsrread ocread" id="oc-read"></p>
+    <p class="wnote" id="oc-note"></p>
+  </section>
+
+  <section class="mod" id="crowdpanel">
+    <header><h2>Crowd</h2><p>funding, open interest, the share of accounts long and the flow — read the way the Crowd sweep reads them, for this coin</p></header>
+    <div class="ctbody">
+      <dl class="stats ctstats">
+        <div><dt>Funding</dt><dd class="num" id="ct-fund">—</dd></div>
+        <div><dt>Funding avg</dt><dd class="num" id="ct-favg">—</dd></div>
+        <div><dt>Next funding</dt><dd class="num" id="ct-next">—</dd></div>
+        <div><dt>Open interest</dt><dd class="num" id="ct-oi">—</dd></div>
+        <div><dt>OI 24h</dt><dd class="num" id="ct-oichg">—</dd></div>
+        <div><dt>Accounts</dt><dd class="num" id="ct-ls">—</dd></div>
+        <div><dt>OI / turnover</dt><dd class="num" id="ct-oit">—</dd></div>
+        <div><dt>Flow</dt><dd class="num" id="ct-flow">—</dd></div>
+      </dl>
+      <div class="stance ctstance" id="ct-read"><h1><span class="ctnone">Reading the crowd…</span></h1></div>
+    </div>
+    <div class="ctweek">
+      <p class="ctlab">The last week, hour by hour — what the read would have said at each hour, and whether price then went that way</p>
+      <div class="ctstrip" id="ct-strip"></div>
+      <p class="wnote ctally" id="ct-tally"></p>
+    </div>
+  </section>
+
+  <section class="mod chartmod" id="crowdchart" data-fold-default="1">
+    <header><h2 id="cx-title">Positioning chart</h2>
+      <div class="legend"><span><i style="background:#6E7BFF"></i>open interest (left scale)</span>
+      <span><i style="background:var(--down)"></i>funding, longs paying</span><span><i style="background:var(--up)"></i>funding, shorts paying</span>
+      <span><i style="background:var(--pend)"></i>share of accounts long</span><span>dashed lines are where a crowd starts</span></div></header>
+    <div class="cxtools" id="cx-tools"></div>
+    <div class="panewrap"><div class="ohlc cxlegend" id="cx-legend"></div><div class="pane" id="cx-pane"></div></div>
+    <p class="wnote" id="cx-note"></p>
   </section>
 
   <section class="mod">
@@ -134,6 +204,94 @@
   <div id="charts"></div>
 
   </div><!-- /terminalview -->
+
+  <section id="btcview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">Bitcoin</h1>
+        <p class="wsub">Every read the app has, on the one coin everything else is measured against.</p>
+      </div>
+      <div class="bxtools">
+        <button class="ghost" id="bx-open-term">Open in Terminal</button>
+        <button class="ghost" id="bx-open-crowd">Crowd on the Terminal</button>
+        <button class="ghost" id="bx-refresh">Refresh</button>
+      </div>
+    </div>
+
+    <div class="bxhead">
+      <div class="pxrow">
+        <span class="px num" id="bx-px">—</span>
+        <span class="chg num" id="bx-chg">&nbsp;</span>
+      </div>
+      <div class="bxreads" id="bx-reads"></div>
+    </div>
+
+    <section class="mod" id="bx-stoch">
+      <header><h2>Stochastic</h2><p>the Terminal's five frames, read for BTC — composite, crosses, divergence, and what each setup has done before</p></header>
+      <div class="bxstance">
+        <h1><span id="bx-verdict">Loading</span><span class="num" id="bx-score">·</span></h1>
+        <div class="strip" id="bx-strip"></div>
+      </div>
+      <div class="mrow bxrow bxmhead"><div>Frame</div><div>Signal</div><div>Age</div><div>%K / %D</div><div>Zone</div><div>200</div><div>Divergence</div></div>
+      <div id="bx-frames"><div class="loading">Loading BTC across the five frames…</div></div>
+      <p class="wnote bxbest" id="bx-best"></p>
+    </section>
+
+    <section class="mod" id="bx-pos">
+      <header><h2>Positioning</h2><p>funding, open interest and the share of accounts long, read the way the Crowd sweep reads them</p></header>
+      <div class="market bxmarket">
+        <dl class="stats ctstats">
+          <div><dt>Funding</dt><dd class="num" id="bx-fund">—</dd></div>
+          <div><dt>Funding avg</dt><dd class="num" id="bx-favg">—</dd></div>
+          <div><dt>Next funding</dt><dd class="num" id="bx-next">—</dd></div>
+          <div><dt>Open interest</dt><dd class="num" id="bx-oi">—</dd></div>
+          <div><dt>OI 24h</dt><dd class="num" id="bx-oichg">—</dd></div>
+          <div><dt>Accounts</dt><dd class="num" id="bx-ls">—</dd></div>
+          <div><dt>OI / turnover</dt><dd class="num" id="bx-oit">—</dd></div>
+          <div><dt>Flow</dt><dd class="num" id="bx-flow">—</dd></div>
+        </dl>
+        <div class="stance ctstance" id="bx-read"><h1><span class="ctnone">Reading positioning…</span></h1></div>
+      </div>
+      <div class="ctstrip" id="bx-cstrip"></div>
+      <p class="wnote ctally" id="bx-tally"></p>
+    </section>
+
+    <section class="mod" id="bx-week">
+      <header><h2>Day of the week</h2><p>which day BTC bleeds on and which day it pays, close to close, on every daily bar Bybit has</p>
+        <div class="hscope bxscope"><button id="bx-wk-all" aria-pressed="true">All history</button><button id="bx-wk-recent" aria-pressed="false">Last 12 months</button></div></header>
+      <div id="bx-today"></div>
+      <div class="mrow bxdayhead"><span>Day</span><span>Days</span><span>Avg</span><span>Median</span><span>Up</span><span>Total</span><span>≤ −5%</span><span>Lean</span></div>
+      <div id="bx-days"><div class="loading">Paging back through every BTC daily bar Bybit has…</div></div>
+      <div class="bxyears" id="bx-years"></div>
+      <div class="bxworstrow" id="bx-worst"></div>
+      <p class="wnote" id="bx-daynote"></p>
+    </section>
+
+    <section class="mod" id="bx-sess">
+      <header><h2>Sessions</h2><p>Asia consolidates, London expands, New York confirms — today live, and how often the sequence has played out on BTC</p></header>
+      <div id="bx-sess-live" class="sesslive"><div class="loading">Loading the 1H tape…</div></div>
+      <div class="mrow sesshead"><span>Stage</span><span>Days</span><span>Rate</span></div>
+      <div id="bx-sess-stats"><div class="loading">Loading the 1H tape…</div></div>
+      <p class="wnote" id="bx-sess-sweep"></p>
+    </section>
+
+    <section class="mod" id="bx-an">
+      <header><h2>Analysts</h2><p>the same three blind analysts and the same desk, kept on BTC — the latest read, and their record on this coin alone</p></header>
+      <div class="bxanbar">
+        <div class="anstrip bxanstrip" id="bx-anstrip"></div>
+        <div class="bxanbtns">
+          <button class="primary" id="bx-read-now" disabled>Read BTC now</button>
+          <button class="ghost" data-bx-ask="stoch">Ask stoch</button>
+          <button class="ghost" data-bx-ask="news">Ask news</button>
+          <button class="ghost" id="bx-open-an">Full history</button>
+        </div>
+      </div>
+      <p class="wnote bxannote" id="bx-annote"></p>
+      <div class="bxancard" id="bx-ancard"><div class="loading">No BTC report yet.</div></div>
+      <h3 class="bxh3">Record on BTC</h3>
+      <div id="bx-record"><div class="loading">The track record needs the relay.</div></div>
+    </section>
+  </section>
 
   <section id="watchview" hidden>
     <div class="wtop">
@@ -166,7 +324,7 @@
         <h1 class="wtitle">Scanner</h1>
         <p class="wsub" id="scsub">Sweeps the perp board for coins turning right now.</p>
       </div>
-      <div class="lgtools">
+      <div class="vtools">
         <button id="sc-run" class="ghost">Run scan</button>
         <button id="sc-stop" class="ghost" hidden>Stop</button>
       </div>
@@ -194,13 +352,44 @@
     <p class="wnote" id="scnote"></p>
   </section>
 
+  <section id="crowdview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">Crowd</h1>
+        <p class="wsub" id="crsub">Sweeps the perp board for crowded, fresh, squeezed and coiled positioning.</p>
+      </div>
+      <div class="vtools">
+        <button id="cr-run" class="ghost">Run sweep</button>
+        <button id="cr-stop" class="ghost" hidden>Stop</button>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="scctl">
+        <div class="scgrp"><span class="lab">Lean</span><span id="cr-side" class="chips"></span></div>
+        <div class="scgrp"><span class="lab">Kind</span><span id="cr-kind" class="chips"></span></div>
+        <div class="scgrp"><span class="lab">Depth</span><span id="cr-depth" class="chips"></span></div>
+      </div>
+      <div class="scbar" id="cr-bar" hidden><i id="cr-fill"></i><span id="cr-prog"></span></div>
+    </div>
+
+    <section class="mod">
+      <div class="mrow crhead">
+        <span>#</span><span>Coin</span><span>Last</span><span>24h</span>
+        <span>Read</span><span>Funding</span><span>L/S</span><span>OI 24h</span><span>Flow</span><span>Score</span><span></span>
+      </div>
+      <div id="crrows"><div class="loading">Pick your filters and hit Run sweep.</div></div>
+    </section>
+    <p class="wnote" id="crnote"></p>
+  </section>
+
   <section id="alertsview" hidden>
     <div class="wtop">
       <div>
         <h1 class="wtitle">Alerts</h1>
         <p class="wsub" id="asub">Watches your tracked coins in the background and tells you once per signal.</p>
       </div>
-      <div class="lgtools">
+      <div class="vtools">
         <label class="chk"><input type="checkbox" id="a-on"> Armed</label>
         <button id="a-test" class="ghost">Send test</button>
       </div>
@@ -218,7 +407,7 @@
 
     <section class="mod">
       <header><h2>Telegram</h2><p>message a bot you create; the token stays in this browser</p></header>
-      <div class="lgset">
+      <div class="vset">
         <label>Bot token
           <input type="password" id="a-token" placeholder="123456:ABC-DEF..." autocomplete="off">
         </label>
@@ -226,7 +415,7 @@
           <input type="text" id="a-chat" placeholder="e.g. 123456789" autocomplete="off">
         </label>
         <button id="a-save">Save</button>
-        <p class="lgnote" id="a-note"></p>
+        <p class="vnote" id="a-note"></p>
       </div>
     </section>
 
@@ -239,10 +428,10 @@
   <section id="histview" hidden>
     <div class="wtop">
       <div>
-        <h1 class="wtitle">Signal history</h1>
+        <h1 class="wtitle">Backtest</h1>
         <p class="wsub" id="hsub">Every cross in the loaded history, scored by what price did next.</p>
       </div>
-      <div class="lgtools">
+      <div class="vtools">
         <span class="hscope" id="h-scope"></span>
         <button id="h-run" class="ghost">Rebuild</button>
       </div>
@@ -319,14 +508,139 @@
     <p class="wnote" id="sessnote"></p>
   </section>
 
+  <section id="analystview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">Analyst</h1>
+        <p class="wsub">Reports from the two-analyst read, which runs outside the app. A stochastic
+          analyst and a news analyst look at the same coin without being able to see each other's
+          evidence; where they clash is the part worth reading. The app does no thinking here — it
+          holds no key, calls nothing, and only renders what was handed to it.</p>
+      </div>
+      <div class="vtools">
+        <span class="vmode">read-only</span>
+      </div>
+    </div>
+
+    <section class="mod" id="an-control">
+      <header>
+        <h2>Run the analyst</h2>
+        <p>These buttons run the read that lives <em>outside</em> the app, through a small relay on
+          this machine, and show its output here instead of in a terminal. The app still holds no
+          key and calls no model — it only asks, and renders what comes back.</p>
+      </header>
+      <div class="vset">
+        <div class="anstrip" id="an-strip"></div>
+        <div class="anbtns">
+          <button id="an-dry" class="ghost" title="Free. No model calls.">What's worth reading now</button>
+          <button id="an-pass" title="Reads whatever the gate picked. Uses your Claude subscription.">Run the analyst</button>
+          <span class="anreadrow">
+            <input id="an-sym" placeholder="SOL" maxlength="15" autocomplete="off" spellcheck="false">
+            <button id="an-read" title="All three analysts, blind, on this coin — whether or not anything happened to it.">Read this coin</button>
+          </span>
+          <button id="an-publish" class="ghost" title="Push verdicts/latest.json into Cloud sync, so other devices see it.">Send latest to Cloud</button>
+          <button id="an-wstart" class="ghost" title="Registers the Windows task: a hidden pass every 30 minutes while this PC is awake; a missed one runs when it wakes.">Start auto (30 min)</button>
+          <button id="an-wstop" class="ghost" title="Removes the Windows task.">Stop auto</button>
+          <button id="an-stop" class="ghost" hidden>Stop this run</button>
+        </div>
+        <pre id="an-log" class="anlog" aria-live="polite"></pre>
+
+        <div class="anchat" id="an-chat">
+          <div class="anchathead">
+            <h4>Ask</h4>
+            <div class="anwhom" role="tablist">
+              <button class="anwho-btn on" data-an-to="stoch" title="Sees only the Stochastic indicator and the backtest record. No news, no web — by construction.">Stoch analyst</button>
+              <button class="anwho-btn" data-an-to="news" title="Sees only structure, headlines and the web. No indicator, no crowd read — by construction.">News analyst</button>
+              <button class="anwho-btn" data-an-to="crowd" title="Sees only funding, open interest and the share of accounts long. No indicator, no news, no web — by construction.">Crowd analyst</button>
+              <button class="anwho-btn" data-an-to="desk" title="The reconciler: the only role that can see all three analysts. Can dispatch them and write a full report.">The desk</button>
+            </div>
+            <span id="an-whom-note">Your question leaves the app and goes to that analyst's own session outside it, which can
+              reach only its own data; the answer comes back here. Three separate conversations, each with its own memory.</span>
+            <button class="ghost" id="an-chat-new" title="Start this conversation over with no memory of it">New conversation</button>
+          </div>
+          <div class="anmsgs" id="an-msgs"></div>
+          <div class="anask">
+            <textarea id="an-q" rows="2" placeholder="e.g. what does the 1D setup on SUI look like, and how has that setup done before?" spellcheck="true"></textarea>
+            <button id="an-send">Ask</button>
+          </div>
+        </div>
+
+        <div class="anactions anrelayrow">
+          <label class="anrelay">relay <input id="an-relay-url" spellcheck="false"></label>
+          <label class="anrelay">token <input id="an-relay-token" placeholder="only if you set one" spellcheck="false"></label>
+        </div>
+      </div>
+    </section>
+
+    <div id="anrows"></div>
+
+    <section class="mod">
+      <header>
+        <h2>Add a report</h2>
+        <p>Drop the <code>.json</code> the read produced, or paste it. If you are signed into Cloud
+          it arrives on its own.</p>
+      </header>
+      <div class="vset">
+        <div id="an-drop">
+          Drop a report file here, or <label for="an-file">choose one<input type="file" id="an-file" accept=".json,application/json"></label>
+        </div>
+        <textarea id="an-paste" placeholder='{"schema":"odysseus.analyst.v1", ...}' spellcheck="false"></textarea>
+        <div class="anactions">
+          <button id="an-add">Add report</button>
+          <button id="an-clear" class="ghost">Clear all</button>
+          <span id="annote"></span>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section id="anhistview" hidden>
+    <div class="wtop">
+      <div>
+        <h1 class="wtitle">Analyst History</h1>
+        <p class="wsub">Every call the three analysts and the desk have made, laid against what price did after it.</p>
+      </div>
+      <div class="vtools">
+        <span class="vmode">read-only</span>
+      </div>
+    </div>
+
+    <section class="mod" id="an-history">
+      <header>
+        <h2>The record</h2>
+        <p>The price at the call, the price 24, 48, 72 and 168 hours later, how far it ran each way in
+          between, and whether each call turned out right, wrong or flat at each mark. While a call is
+          still waiting on a checkpoint, <em>so far</em> shows where it stands now. This is the same
+          record each analyst is shown before its next read — only its own half — and this is the
+          only place both halves sit side by side.</p>
+      </header>
+      <div class="vset">
+        <div class="anhsum" id="an-hsum"></div>
+        <div class="anhtools">
+          <input id="an-hsym" placeholder="coin" maxlength="15" autocomplete="off" spellcheck="false" title="show one coin">
+          <select id="an-honly" title="which calls to show">
+            <option value="all">all calls</option>
+            <option value="open">still open</option>
+            <option value="settled">fully settled</option>
+          </select>
+          <button id="an-hrefresh" class="ghost" title="Ask the relay again now. Live prices are refreshed at most every two minutes either way.">Refresh</button>
+          <span id="an-hnote" class="anhint"></span>
+        </div>
+        <div id="an-hrows"></div>
+      </div>
+    </section>
+  </section>
+
   <section id="journalview" hidden>
     <div class="wtop">
       <div>
         <h1 class="wtitle">Journal</h1>
-        <p class="wsub">Every trade you actually took, logged against the verdict Logan gave it at entry.</p>
+        <p class="wsub">Every trade you actually took, logged against the verdict the app gave it at entry.</p>
       </div>
-      <div class="lgtools">
+      <div class="vtools">
         <button id="j-refresh" class="ghost">Refresh prices</button>
+        <button id="j-import" class="ghost" title="Read a file written by mcp/bybit-import.js — the manual way; connecting Bybit below does this by itself">Import from file</button>
+        <input type="file" id="j-import-file" accept="application/json,.json" hidden>
         <button id="j-new" class="ghost">Log trade</button>
       </div>
     </div>
@@ -355,7 +669,7 @@
         <label>Invalidation (stop)
           <input type="text" id="j-inval" inputmode="decimal" autocomplete="off">
         </label>
-        <label>Size <em>(suggested from account &amp; risk)</em>
+        <label>Size <em>(coins — how many you're actually taking)</em>
           <input type="text" id="j-size" inputmode="decimal" autocomplete="off">
         </label>
         <label>Wave <em>(optional)</em>
@@ -366,6 +680,7 @@
         </label>
       </div>
       <p class="jverdict" id="j-verdict-preview"></p>
+      <p class="jsource" id="j-source"></p>
       <div class="jformbtns">
         <button id="j-save" class="runbtn">Log it</button>
         <button id="j-cancel" class="ghost">Cancel</button>
@@ -373,19 +688,39 @@
     </section>
 
     <section class="mod">
-      <header><h2>Sizing</h2><p>risk ÷ stop distance — set the risk in dollars, or as a percentage of the account</p></header>
+      <header><h2>Sizing</h2><p>type the size in coins on the form above and its dollar value shows below —
+        or set a risk amount here and a size will be suggested</p></header>
       <div class="jcfg">
-        <label>Account size (USD)
-          <input type="text" id="j-account" inputmode="decimal" autocomplete="off">
-        </label>
-        <label>Risk per trade (%)
-          <input type="text" id="j-riskpct" inputmode="decimal" autocomplete="off">
-        </label>
-        <label>Risk per trade (USD)
+        <label>Risk per trade (USD) <em>(optional — suggests a size)</em>
           <input type="text" id="j-riskusd" inputmode="decimal" autocomplete="off">
         </label>
       </div>
       <p class="jsizework" id="j-sizework"></p>
+    </section>
+
+    <section class="mod" id="j-bybit">
+      <header><h2>Bybit</h2><p>your account, read-only — what you are in now, and closed trades that log themselves</p></header>
+      <div class="bybar">
+        <div class="anstrip" id="by-strip"></div>
+        <div class="byform" id="by-form" hidden>
+          <input type="text" id="by-key" placeholder="API key" autocomplete="off" spellcheck="false">
+          <input type="password" id="by-secret" placeholder="API secret" autocomplete="off">
+          <button id="by-connect" class="ghost">Connect</button>
+          <p class="anhint">Make the key in Bybit: profile → API → Create New Key → System-generated, <b>Read-Only</b>, no IP restriction needed. The pair goes to the relay on this machine and is kept there; this page keeps nothing.</p>
+        </div>
+        <div class="byconn" id="by-connected" hidden>
+          <button id="by-sync" class="ghost" title="Pull the last 30 days of closed trades into the journal now">Sync closed trades</button>
+          <button id="by-forget" class="ghost" title="Delete the saved key from this machine">Disconnect</button>
+          <span class="anhint" id="by-syncnote"></span>
+        </div>
+        <p class="wnote bynote" id="by-note"></p>
+      </div>
+      <header class="bysub"><h2>Open on Bybit</h2><p id="by-pos-sub">what you are in on Bybit right now</p></header>
+      <div class="mrow byhead">
+        <span>Coin</span><span>Side</span><span>Size</span><span>Entry</span><span>Mark</span>
+        <span>Unrealised</span><span>Stop / TP</span><span>Liq</span><span>Stoch</span><span>Analysts</span><span></span>
+      </div>
+      <div id="by-positions"><div class="loading">Connect Bybit to see what you are in.</div></div>
     </section>
 
     <section class="mod">
@@ -423,117 +758,14 @@
     <p class="wnote" id="jnote"></p>
   </section>
 
-  <section id="loganview" hidden>
-    <div class="wtop">
-      <div>
-        <h1 class="wtitle">Logan</h1>
-        <p class="wsub">Reads the live indicator state for whatever you are looking at.</p>
-      </div>
-      <div class="lgtools">
-        <span class="lgmode" id="lg-mode"></span>
-        <button id="lg-brief" class="ghost">Copy briefing</button>
-        <button id="lg-clear" class="ghost">Clear</button>
-        <button id="lg-setup" class="ghost">Connection</button>
-      </div>
-    </div>
-
-    <div class="lgoff" id="lg-offline" hidden>
-      <b>Logan is not connected.</b> Answers below come from the built-in reader: fixed rules over the
-      panel's numbers. It cannot reason, cannot look at other coins on its own, and cannot use any of
-      Logan's tools — so every answer has the same shape. Add a key under <b>Connection</b> to switch it
-      on: Gemini and OpenRouter are both free, and having both means a quota wall on one is a toggle
-      away from the other.
-      <button id="lg-offbtn" class="ghost">Connection</button>
-    </div>
-
-    <div id="lg-settings" class="mod" hidden>
-      <header><h2>Connection</h2><p>needed only when running the downloaded file</p></header>
-      <div class="lgset">
-        <label>Provider
-          <span class="seg2" id="lg-provider" role="group" aria-label="Provider">
-            <button type="button" data-provider="anthropic" aria-pressed="true">Claude</button>
-            <button type="button" data-provider="gemini" aria-pressed="false">Gemini (free)</button>
-            <button type="button" data-provider="openrouter" aria-pressed="false">OpenRouter (free)</button>
-          </span>
-        </label>
-        <label id="lg-anthropic-fields" class="lgfieldgrp">API key
-          <input type="password" id="lg-key" placeholder="sk-ant-..." autocomplete="off">
-        </label>
-        <label id="lg-anthropic-fields-model" class="lgfieldgrp">Model
-          <input type="text" id="lg-model" placeholder="claude-sonnet-5">
-        </label>
-        <label id="lg-gemini-fields" class="lgfieldgrp" hidden>API key
-          <input type="password" id="lg-gkey" placeholder="AIza..." autocomplete="off">
-        </label>
-        <label id="lg-gemini-fields-model" class="lgfieldgrp" hidden>Model
-          <input type="text" id="lg-gmodel" placeholder="gemini-3.8-flash">
-        </label>
-        <label id="lg-openrouter-fields" class="lgfieldgrp" hidden>API key
-          <input type="password" id="lg-orkey" placeholder="sk-or-v1-..." autocomplete="off">
-        </label>
-        <label id="lg-openrouter-fields-model" class="lgfieldgrp" hidden>Model
-          <input type="text" id="lg-ormodel" placeholder="openrouter/free">
-        </label>
-        <button id="lg-save">Save</button>
-        <p class="lgnote" id="lg-keynote"></p>
-      </div>
-    </div>
-
-    <section class="mod lgchat">
-      <div class="lgsessbar">
-        <button class="lgnewchat" id="lg-newchat">+ New chat</button>
-        <div class="lgsesslist" id="lg-sessions"></div>
-      </div>
-      <div id="lg-log" class="lglog"></div>
-      <div class="lgquick" id="lg-quick"></div>
-      <div class="lginput">
-        <textarea id="lg-text" rows="1" placeholder="Ask Logan about the current setup"></textarea>
-        <button id="lg-send">Send</button>
-      </div>
-    </section>
-  </section>
-
-  <section id="mariaview" hidden>
-    <div class="wtop">
-      <div>
-        <h1 class="wtitle">Maria</h1>
-        <p class="wsub">Reads your closed trades — the record, the notes, and the frames you took them on.</p>
-      </div>
-      <div class="lgtools">
-        <span class="lgmode" id="mr-mode"></span>
-        <button id="mr-clear" class="ghost">Clear</button>
-        <button id="mr-setup" class="ghost">Connection</button>
-      </div>
-    </div>
-
-    <div class="lgoff" id="mr-offline" hidden>
-      <b>Maria is not connected.</b> She has no offline mode: reading a record is judgement, and a
-      deterministic version of that would just be the Patterns panel with a name on it. Add a key under
-      <b>Connection</b> — Gemini and OpenRouter are both free, and both agents share the same one.
-    </div>
-
-    <section class="mod lgchat">
-      <div class="lgsessbar">
-        <button class="lgnewchat" id="mr-newchat">+ New chat</button>
-        <div class="lgsesslist" id="mr-sessions"></div>
-      </div>
-      <div id="mr-log" class="lglog"></div>
-      <div class="lgquick" id="mr-quick"></div>
-      <div class="lginput">
-        <textarea id="mr-text" rows="1" placeholder="Ask Maria what your record shows"></textarea>
-        <button id="mr-send">Send</button>
-      </div>
-    </section>
-  </section>
-
   <section id="anomhistview" hidden>
     <div class="wtop">
       <div>
         <h1 class="wtitle">Anomaly History</h1>
         <p class="wsub">Every flag the detector has written down, and whether it turned out to mean anything.</p>
       </div>
-      <div class="lgtools">
-        <span class="lgmode" id="ah-count"></span>
+      <div class="vtools">
+        <span class="vmode" id="ah-count"></span>
       </div>
     </div>
 
@@ -554,63 +786,29 @@
       <div id="anomlog"><div class="loading">No flags logged yet.</div></div>
     </section>
     <p class="wnote" id="anomnote"></p>
-
-  </section>
-
-  <section id="paulview" hidden>
-    <div class="wtop">
-      <div>
-        <h1 class="wtitle">Paul</h1>
-        <p class="wsub">Reads the anomaly record — which flags held, which faded, and what the detector is actually worth.</p>
-      </div>
-      <div class="lgtools">
-        <span class="lgmode" id="pl-mode"></span>
-        <button id="pl-clear" class="ghost">Clear</button>
-        <button id="pl-setup" class="ghost">Connection</button>
-      </div>
-    </div>
-
-    <div class="lgoff" id="pl-offline" hidden>
-      <b>Paul is not connected.</b> Like Maria he has no offline mode — reading a record is judgement,
-      and the Anomaly History panels already show the arithmetic. Add a key under <b>Connection</b>;
-      all three agents share it.
-    </div>
-
-    <section class="mod lgchat">
-      <div class="lgsessbar">
-        <button class="lgnewchat" id="pl-newchat">+ New chat</button>
-        <div class="lgsesslist" id="pl-sessions"></div>
-      </div>
-      <div id="pl-log" class="lglog"></div>
-      <div class="lgquick" id="pl-quick"></div>
-      <div class="lginput">
-        <textarea id="pl-text" rows="1" placeholder="Ask Paul what the flags are worth"></textarea>
-        <button id="pl-send">Send</button>
-      </div>
-    </section>
   </section>
 
   <section id="cloudview" hidden>
     <div class="wtop">
       <div>
         <h1 class="wtitle">Cloud</h1>
-        <p class="wsub">Optional. Keeps your journal, watchlist, alerts and Logan's memory on every
+        <p class="wsub">Optional. Keeps your journal, watchlist, alerts and anomaly log on every
           machine you sign in from. Leave it alone and the app stays entirely on this computer.</p>
       </div>
-      <div class="lgtools">
-        <span class="lgmode" id="cl-mode"></span>
+      <div class="vtools">
+        <span class="vmode" id="cl-mode"></span>
         <button id="cl-sync" class="ghost">Sync now</button>
       </div>
     </div>
 
     <div class="mod">
       <header><h2>Account</h2><p id="cl-who"></p></header>
-      <div class="lgset">
+      <div class="vset">
         <div id="cl-authrow" class="clrow">
-          <label class="lgfieldgrp">Email
+          <label class="vfieldgrp">Email
             <input type="email" id="cl-email" placeholder="you@example.com" autocomplete="username">
           </label>
-          <label class="lgfieldgrp">Password
+          <label class="vfieldgrp">Password
             <input type="password" id="cl-pass" placeholder="at least 6 characters" autocomplete="current-password">
           </label>
           <button id="cl-signin">Sign in</button>
@@ -619,19 +817,19 @@
         <div id="cl-signedrow" class="clrow" hidden>
           <button id="cl-signout" class="ghost">Sign out</button>
         </div>
-        <p class="lgnote" id="cl-last"></p>
+        <p class="vnote" id="cl-last"></p>
       </div>
     </div>
 
     <div class="mod">
       <header><h2>What syncs</h2><p>caches stay local — they rebuild themselves in seconds</p></header>
-      <div class="lgset">
+      <div class="vset">
         <ul class="clkeys" id="cl-keys"></ul>
         <label class="clcheck">
           <input type="checkbox" id="cl-secrets">
           <span>Also sync API keys and the Telegram token</span>
         </label>
-        <p class="lgnote">Your Firebase rules keep these readable only by your own account, but a key
+        <p class="vnote">Your Firebase rules keep these readable only by your own account, but a key
           that can spend money is a different thing to put on a server than a trade journal. Leave this
           off and you paste your keys once per machine, which is a small price for keeping them here.</p>
       </div>
@@ -639,13 +837,13 @@
 
     <div class="mod">
       <header><h2>Firebase project</h2><p>already connected — only touch this to point somewhere else</p></header>
-      <div class="lgset">
-        <label class="lgfieldgrp clwide">Config
+      <div class="vset">
+        <label class="vfieldgrp clwide">Config
           <textarea id="cl-config" rows="9" spellcheck="false"
             placeholder="Paste the firebaseConfig block from your Firebase console here"></textarea>
         </label>
         <button id="cl-saveconfig">Save config</button>
-        <p class="lgnote" id="cl-confignote"></p>
+        <p class="vnote" id="cl-confignote"></p>
       </div>
     </div>
   </section>
@@ -668,7 +866,7 @@
         <h1 class="wtitle">Anomaly</h1>
         <p class="wsub" id="nvsub">Finds what moved abnormally, then explains why it moved.</p>
       </div>
-      <div class="lgtools">
+      <div class="vtools">
         <button id="nv-run" class="ghost">Scan movers</button>
         <button id="nv-stop" class="ghost" hidden>Stop</button>
       </div>
@@ -694,19 +892,9 @@
     </section>
     <p class="wnote" id="nvnote"></p>
 
-    <section class="mod">
-      <header><h2>Coiled</h2><p>compressed range, quiet volume, open interest building — flagged before the move, scored on whether it expanded</p></header>
-      <div class="mrow coilhead">
-        <span>Coin</span><span>Range</span><span>Volume</span><span>OI</span><span>Signals</span>
-        <span>+1h</span><span>+4h</span><span>+24h</span>
-      </div>
-      <div id="coilrows"><div class="loading">Nothing coiled yet.</div></div>
-    </section>
-    <p class="wnote" id="coilnote"></p>
   </section>
 
 </div>
-
 
 <!-- Load order matters: definitions first, boot.js last. -->
 <!-- the screensaver: five idle minutes, then the mark, breathing -->
@@ -723,26 +911,34 @@
 <script src="js/state.js"></script>
 <script src="js/backtest.js"></script>
 <script src="js/sessions.js"></script>
+<script src="js/weekday.js"></script>
 <script src="js/anomalies.js"></script>
 <script src="js/btc-reference.js"></script>
 <script src="js/verdict.js"></script>
 <script src="js/scanner.js"></script>
+<script src="js/crowd.js"></script>
+<script src="js/lsr.js"></script>
+<script src="js/oicvd.js"></script>
 <script src="js/alerts.js"></script>
 <script src="js/news.js"></script>
-<script src="js/logan.js"></script>
 <script src="js/charts.js"></script>
 <script src="js/ui-terminal.js"></script>
+<script src="js/ui-lsr.js"></script>
+<script src="js/ui-oicvd.js"></script>
+<script src="js/ui-crowd.js"></script>
 <script src="js/ui-symbols.js"></script>
 <script src="js/ui-watchlist.js"></script>
 <script src="js/ui-history.js"></script>
 <script src="js/ui-sessions.js"></script>
 <script src="js/ui-anomalies.js"></script>
 <script src="js/journal.js"></script>
-<!-- after journal.js: Maria's groupers reference its helpers at load time -->
-<script src="js/maria.js"></script>
-<script src="js/paul.js"></script>
+<script src="js/analyst.js"></script>
+<script src="js/ui-btc.js"></script>
+<script src="js/ui-bybit.js"></script>
+<!-- after all three agents exist: it registers tools onto them -->
 <script src="js/app.js"></script>
 <script src="js/idle.js"></script>
+<script src="js/ui-fold.js"></script>
 <script src="js/boot.js"></script>
 </body>
 </html>

@@ -1,0 +1,10 @@
+{
+  "_comment": "What the unattended pass scans. scope: 'board' = every liquid book on the exchange (the same top-N the News view sweeps), plus the symbols listed here; 'watchlist' = only the symbols; 'app' = the app's built-in list. exclude: never scanned whatever the scope - Bybit lists tokenised stocks, ETFs and metals as perpetuals and they are not coins. always: read on a clock every pass whether or not anything crossed the gate, outside the budget - the dedicated Bitcoin page lives on this. Overridden by ODYSSEUS_WATCHLIST (a scope word, or comma-separated symbols). Read on every call - no restart needed.",
+  "always": ["BTC"],
+  "scope": "board",
+  "symbols": ["BTC", "ETH", "SOL", "XRP", "BNB", "DOGE", "ADA", "AVAX", "LINK", "SUI", "TON", "LTC", "ZEC", "NEAR", "ARB"],
+  "exclude": ["AAPL", "TSLA", "META", "MSTR", "INTC", "MU", "NVDA", "AMZN", "GOOGL", "MSFT", "COIN", "CRCL", "HOOD", "PLTR", "AMD",
+              "SOXL", "SOXS", "SPCX", "SPY", "QQQ", "TQQQ", "SQQQ",
+              "XAU", "XAG", "XAUT", "PAXG", "XPT", "XPD",
+              "CL", "BZ", "NG", "USOIL", "UKOIL", "BTW"]
+}

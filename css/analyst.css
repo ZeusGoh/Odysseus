@@ -1,0 +1,391 @@
+/* analyst.css — the Analyst view: reports written outside the app, rendered inside it.
+   part of Odysseus */
+
+  #anrows{display:flex;flex-direction:column;gap:14px}
+
+  .ancard{
+    border:1px solid var(--edge);border-radius:var(--radius-lg);
+    padding:14px 16px;background:var(--panel)
+  }
+  .ancard.stale{opacity:.72}
+
+  /* a closed card is a line and a headline; the header is the switch */
+  .ancard.closed{padding:9px 14px}
+  .ancard.closed .anheadline{margin:0;font-size:12.5px;color:var(--mute);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ancard.closed .anhead{margin-bottom:4px}
+  .anhead[data-an-toggle],.anhhead[data-an-htoggle]{cursor:pointer;user-select:none}
+  .anhead[data-an-toggle]:hover .anchev,.anhhead[data-an-htoggle]:hover .anchev{color:var(--ink)}
+  .anchev{color:var(--faint);font-size:11px;width:10px;text-align:center}
+  .ancalls{display:inline-flex;gap:4px;margin-left:4px}
+  .ancalls .anpill{font-size:9px;padding:1px 6px;letter-spacing:.05em}
+
+  .anhead{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:10px;flex-wrap:wrap;margin-bottom:8px
+  }
+  .anid{display:flex;align-items:center;gap:8px}
+  .anid b{font-size:14px;letter-spacing:.01em}
+  .anid img,.anid .mono{width:20px;height:20px;border-radius:50%}
+
+  .anmeta{display:flex;align-items:center;gap:10px}
+  .anage{color:var(--dim);font-family:var(--mono);font-size:11px}
+  .anwhen{margin-left:auto;color:var(--faint);font-family:var(--mono);font-size:11px}
+
+  /* conviction and confidence are 0-100 scores, in mono so they never read as a price */
+  .anconf,.anconv{
+    font-family:var(--mono);font-variant-numeric:tabular-nums;
+    font-size:11px;font-weight:600;padding:1px 6px;
+    border-radius:var(--radius-sm);border:1px solid var(--edge);
+    background:var(--chip);color:var(--mute)
+  }
+
+  .anpill{
+    font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+    padding:2px 8px;border-radius:999px;border:1px solid var(--edge-2);
+    background:var(--chip);color:var(--mute)
+  }
+  .anpill.up{color:var(--up);border-color:rgba(8,153,129,.45)}
+  .anpill.down{color:var(--down);border-color:rgba(242,54,69,.45)}
+  .anpill.flat{color:var(--mute)}
+  .anpill.agree{color:var(--up);border-color:rgba(8,153,129,.45)}
+  .anpill.partial{color:var(--mute)}
+  .anpill.clash{color:var(--pend);border-color:rgba(245,165,36,.5)}
+
+  .anheadline{font-size:14px;line-height:1.5;margin:2px 0 8px}
+  .annote{color:var(--mute);font-size:12px;line-height:1.55;margin:0 0 12px}
+
+  .anstale,.andispute{
+    font-size:12px;line-height:1.55;margin:0 0 10px;
+    padding:8px 10px;border-radius:var(--radius-md);
+    border:1px solid rgba(245,165,36,.4);
+    color:var(--pend);background:rgba(245,165,36,.07)
+  }
+
+  /* the two blind reads sit side by side — the layout is the argument */
+  .ansides{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .ansides.three{grid-template-columns:1fr 1fr 1fr}
+  @media (max-width:1100px){.ansides.three{grid-template-columns:1fr 1fr}}
+  @media (max-width:760px){.ansides,.ansides.three{grid-template-columns:1fr}}
+
+  .anside{
+    border:1px solid var(--edge);border-radius:var(--radius-md);
+    padding:10px 12px;background:var(--panel-2)
+  }
+  .anside header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .anside h4{
+    font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--dim);margin:0;font-weight:600
+  }
+  .ansub{color:var(--faint);font-size:11px;margin:0 0 6px}
+  .anhorizon{font-family:var(--mono);font-size:11px;color:var(--mute);margin:0 0 6px}
+  .anrecord{margin:4px 0 6px;font-size:11px;line-height:1.55;color:var(--mute);border-left:2px solid var(--edge);padding-left:8px}
+  .anrecord b{color:var(--ink);font-weight:500}
+  .anempty{color:var(--dim);font-size:12px;margin:4px 0 0}
+
+  .ancat{font-size:12px;line-height:1.55;margin:0 0 8px}
+  .ancat em{color:var(--pend);font-style:normal}
+  .ancat a{color:var(--focus)}
+
+  .anfor,.anagainst{margin:0 0 6px;padding-left:17px}
+  .anfor li,.anagainst li{font-size:12px;line-height:1.55;margin-bottom:3px}
+  .anfor li::marker{color:var(--up)}
+  .anagainst li{color:var(--mute)}
+  .anagainst li::marker{color:var(--down)}
+
+  .anclash{margin-top:12px}
+  .anclash h4{
+    font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--pend);margin:0 0 5px;font-weight:600
+  }
+  .anclash ul{margin:0;padding-left:17px}
+  .anclash li{font-size:12px;line-height:1.55;margin-bottom:3px}
+  .anclash li::marker{color:var(--pend)}
+
+  .anbody{margin-top:12px}
+  .anbody p{font-size:12.5px;line-height:1.65;margin:0 0 8px}
+  .anflip{font-size:12px;line-height:1.55;color:var(--mute);margin:8px 0 0}
+
+  .anfoot{
+    display:flex;align-items:center;gap:8px;
+    margin-top:12px;padding-top:10px;border-top:1px solid var(--edge)
+  }
+
+  /* ---- the inbox ---- */
+  #an-drop{
+    border:1px dashed var(--edge-2);border-radius:var(--radius-md);
+    padding:18px;text-align:center;color:var(--mute);font-size:12.5px;
+    transition:border-color .15s ease,color .15s ease,background-color .15s ease
+  }
+  #an-drop.over{border-color:var(--up);color:var(--ink);background:var(--raise)}
+  #an-drop label{color:var(--focus);text-decoration:underline;cursor:pointer}
+  #an-drop input[type=file]{display:none}
+
+  #an-paste{
+    width:100%;min-height:110px;resize:vertical;margin-top:10px;
+    background:var(--panel-2);color:var(--ink);
+    border:1px solid var(--edge);border-radius:var(--radius-md);padding:9px 11px;
+    font-family:var(--mono);font-size:11.5px;line-height:1.55
+  }
+
+  .anactions{display:flex;align-items:center;gap:8px;margin-top:10px}
+  #annote{margin-left:auto;color:var(--mute);font-size:12px}
+
+  /* ---- the relay controls: buttons for the read that runs outside ---- */
+  #an-control{margin-bottom:14px}
+
+  .anstrip{display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-height:24px}
+  .anchip{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.03em;
+    padding:2px 8px;border-radius:999px;border:1px solid var(--edge-2);
+    background:var(--chip);color:var(--mute)
+  }
+  .anchip.on{color:var(--up);border-color:rgba(8,153,129,.45)}
+  .anchip.off{color:var(--down);border-color:rgba(242,54,69,.45)}
+  .anchip.warn{color:var(--pend);border-color:rgba(245,165,36,.5)}
+  .anchip.busy{color:var(--focus);border-color:var(--focus);animation:anpulse 1.2s ease-in-out infinite}
+  @keyframes anpulse{0%,100%{opacity:1}50%{opacity:.55}}
+  .anhint{color:var(--mute);font-size:12px;line-height:1.5}
+  .anhint code{font-family:var(--mono);font-size:11px}
+
+  /* each analyst's own record, side by side — never one line, never merged */
+  .antrack{
+    flex-basis:100%;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px
+  }
+  @media (max-width:760px){.antrack{grid-template-columns:1fr}}
+  .antrack span{font-size:11.5px;line-height:1.5;color:var(--mute)}
+  .antrack b{color:var(--dim);font-weight:600;margin-right:4px}
+
+  /* what the last scan found: the output of "what's worth reading now" */
+  .anlastpass{flex-basis:100%;margin-top:6px}
+  .anlphead{font-size:11.5px;line-height:1.6;color:var(--mute)}
+  .anlphead b{color:var(--ink);font-weight:600}
+  .anlplist{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+  .anlplist li{
+    display:flex;align-items:baseline;gap:8px;padding:4px 8px;border-radius:var(--radius-sm);
+    font-size:12px;line-height:1.45;cursor:pointer
+  }
+  .anlplist li:hover{background:var(--raise)}
+  .anlplist li b{min-width:58px;font-family:var(--mono);font-size:12px}
+  .anlplist li.read b{color:var(--up)}
+  .anlplist li.failed b{color:var(--down)}
+  .anlplist li.skipped,.anlplist li.dry{opacity:.7}
+  .anlpstate{
+    font-family:var(--mono);font-size:10px;letter-spacing:.04em;white-space:nowrap;
+    padding:0 6px;border-radius:999px;border:1px solid var(--edge-2);color:var(--dim)
+  }
+  .anlplist li.read .anlpstate{color:var(--up);border-color:rgba(8,153,129,.45)}
+  .anlpwhy{color:var(--mute);min-width:0}
+  .anlpmore{margin-top:4px;font-size:11px}
+
+  /* ---- "worth a look": the newest fresh read per coin, ranked ---- */
+  .anshort{
+    border:1px solid var(--edge);border-radius:var(--radius-lg);
+    padding:12px 14px;background:var(--panel)
+  }
+  .anshort header{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .anshort h4{
+    font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--up);margin:0;font-weight:600
+  }
+  .anshort header span{color:var(--faint);font-size:11px}
+  .anshort ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+  .anshort li{
+    display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius-md);
+    cursor:pointer;transition:background-color .12s ease
+  }
+  .anshort li:hover{background:var(--raise)}
+  .anshort li b{font-size:13px;min-width:52px}
+  .anshort li img,.anshort li .mono{width:18px;height:18px;border-radius:50%}
+  .anrank{
+    font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:11px;font-weight:600;
+    min-width:26px;text-align:right;color:var(--dim)
+  }
+  .anshead{
+    flex:1;min-width:0;font-size:12px;color:var(--mute);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+  }
+  @media (max-width:760px){.anshead{display:none}}
+
+  .anbtns{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .anbtns button:disabled{opacity:.45;cursor:not-allowed}
+  .anreadrow{display:inline-flex;align-items:center;gap:6px}
+  #an-sym{
+    width:82px;text-transform:uppercase;
+    background:var(--panel-2);color:var(--ink);
+    border:1px solid var(--edge);border-radius:var(--radius-md);padding:7px 9px;
+    font-family:var(--mono);font-size:12px;letter-spacing:.04em
+  }
+
+  .anlog{
+    margin:12px 0 0;max-height:220px;overflow:auto;white-space:pre-wrap;
+    background:var(--panel-2);color:var(--ink);
+    border:1px solid var(--edge);border-radius:var(--radius-md);padding:9px 11px;
+    font-family:var(--mono);font-size:11px;line-height:1.55
+  }
+  .anlog:empty{display:none}
+
+  /* ---- ask the analyst: a conversation with the desk outside the app ---- */
+  .anchat{margin-top:14px;border:1px solid var(--edge);border-radius:var(--radius-md);background:var(--panel-2)}
+  .anchathead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:10px 12px 6px}
+  .anchathead h4{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim);margin:0;font-weight:600}
+  .anchathead span{flex:1;min-width:200px;color:var(--faint);font-size:11px;line-height:1.5}
+  .anchathead > button{font-size:11px}
+  .anwhom{display:inline-flex;border:1px solid var(--edge);border-radius:999px;overflow:hidden}
+  .anwho-btn{
+    font-size:11px;padding:4px 11px;border:0;border-radius:0;background:transparent;color:var(--mute);cursor:pointer
+  }
+  .anwho-btn + .anwho-btn{border-left:1px solid var(--edge)}
+  .anwho-btn.on{background:var(--chip);color:var(--ink);font-weight:600}
+  .anwho-btn:disabled{opacity:.45;cursor:not-allowed}
+  .anmsgs{max-height:340px;overflow:auto;padding:4px 12px 8px;display:flex;flex-direction:column;gap:8px}
+  .anmsg{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:start}
+  .anwho{font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);padding-top:3px}
+  .anmsg.you .anwho{color:var(--focus)}
+  .antext{font-size:12.5px;line-height:1.6;white-space:normal;word-break:break-word}
+  .anmsg.you .antext{color:var(--ink)}
+  .anmsg.them .antext{color:var(--mute)}
+  .anmsg.err .antext{color:var(--down)}
+  .anmsg.thinking .antext{color:var(--dim);font-style:italic;animation:anpulse 1.2s ease-in-out infinite}
+  .ancost{font-family:var(--mono);font-size:10px;color:var(--faint);padding-top:4px}
+  .anask{display:flex;gap:8px;align-items:flex-end;padding:8px 12px 12px;border-top:1px solid var(--edge)}
+  .anask textarea{
+    flex:1;resize:vertical;min-height:38px;background:var(--panel);color:var(--ink);
+    border:1px solid var(--edge);border-radius:var(--radius-md);padding:8px 10px;
+    font-size:12.5px;line-height:1.5;font-family:inherit
+  }
+  .anask button:disabled{opacity:.45;cursor:not-allowed}
+
+  /* ---- the history: every call, against what price did after ---- */
+  #an-history{margin-bottom:14px}
+  .anhsum{margin-bottom:10px}
+  .anhsumtable,.anhtable{
+    width:100%;border-collapse:collapse;font-size:12px;
+    font-variant-numeric:tabular-nums
+  }
+  .anhsumtable th,.anhtable th{
+    font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:600;
+    color:var(--dim);text-align:left;padding:4px 8px;white-space:nowrap
+  }
+  .anhsumtable thead th,.anhtable thead th{border-bottom:1px solid var(--edge);text-align:center}
+  .anhsumtable thead th:first-child,.anhtable thead th:first-child{text-align:left}
+  .anhsumtable td,.anhtable td{padding:5px 8px;text-align:center;border-bottom:1px solid var(--edge);vertical-align:top}
+  .anhsumtable tbody tr:last-child td,.anhtable tbody tr:last-child td{border-bottom:0}
+  .anhsumtable td{font-family:var(--mono);font-size:11.5px;color:var(--mute)}
+  .anhsumtable td.good{color:var(--up)}
+  .anhsumtable td.bad{color:var(--down)}
+  .anhsum .anhint{margin:8px 0 0;font-size:11px;color:var(--faint)}
+  /* one group per side: a heading with how it leans, then all / bull / bear */
+  .anhsumtable tr.anh-group th{
+    padding-top:10px;color:var(--ink);text-transform:none;letter-spacing:.01em;font-size:12px;
+    border-bottom:1px solid var(--edge)
+  }
+  .anhsumtable tr.anh-group:first-child th{padding-top:4px}
+  .anh-lean{margin-left:10px;font-weight:500;font-size:11px;color:var(--mute);letter-spacing:0}
+  .anhsumtable tr.anh-all th{color:var(--mute);text-transform:none;letter-spacing:.01em;font-size:11px}
+  .anhsumtable tr.anh-split th{color:var(--dim);text-transform:none;letter-spacing:.01em;font-size:11px;padding-left:20px}
+  .anhsumtable tr.anh-split td{font-size:11px}
+  .anhsumtable tr.anh-deskgrp th,.anhsumtable tr.anh-deskgrp td{opacity:.62}
+  .anhsumtable tr.anh-deskgrp.anh-group th{font-size:11px;color:var(--mute)}
+  .anhsumtable tr.anh-mag-row th{color:var(--dim);text-transform:none;letter-spacing:.01em;font-size:11px;padding-left:20px;font-style:italic}
+  .anhsumtable tr.anh-mag-row td{font-size:11px}
+  .anhsumtable td.anh-mag{white-space:nowrap}
+
+  .anhcombo{margin-top:12px}
+  .anhcombo thead th:first-child{text-transform:none;letter-spacing:.01em;font-size:12px;color:var(--ink)}
+  .anhcombo tr.anh-cgroup th{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:0;text-transform:none;
+    color:var(--mute);padding-top:8px;border-bottom:1px solid var(--edge)
+  }
+  .anhcombo tr.anh-cgroup.anh-unan th{color:var(--ink)}
+  .anhcombo tr.anh-split th{font-family:var(--mono);font-size:10.5px;letter-spacing:0;padding-left:20px;color:var(--dim)}
+  .anh-n{margin-left:8px;color:var(--faint);font-family:var(--mono);font-weight:500;font-size:10px}
+
+  .anhcalib{
+    font-size:11.5px;line-height:1.7;color:var(--mute);
+    margin:8px 0 0;padding:8px 10px;border:1px solid var(--edge);border-radius:var(--radius-md)
+  }
+  .anhcalib b{color:var(--ink);font-weight:600}
+
+  .anhtools{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  #an-hsym{
+    width:82px;text-transform:uppercase;
+    background:var(--panel-2);color:var(--ink);
+    border:1px solid var(--edge);border-radius:var(--radius-md);padding:6px 9px;
+    font-family:var(--mono);font-size:12px;letter-spacing:.04em
+  }
+  #an-honly{
+    background:var(--panel-2);color:var(--ink);
+    border:1px solid var(--edge);border-radius:var(--radius-md);padding:6px 9px;font-size:12px
+  }
+  #an-hnote{margin-left:auto;font-size:11px;color:var(--faint)}
+
+  #an-hrows{display:flex;flex-direction:column;gap:10px}
+  .anhrow{
+    border:1px solid var(--edge);border-radius:var(--radius-lg);
+    padding:12px 14px;background:var(--panel)
+  }
+  .anhrow.done{opacity:.85}
+  .anhhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  /* collapsed, a row is its header alone: coin, the desk's read, and the strip */
+  .anhrow.collapsed{padding:8px 14px}
+  .anhrow.collapsed .anhhead{margin-bottom:0}
+  .anhstrip{display:inline-flex;align-items:center;gap:10px;margin-left:8px;flex-wrap:wrap}
+  .anhs{font-family:var(--mono);font-size:11px;color:var(--dim);white-space:nowrap}
+  .anhs.nocall{color:var(--faint)}
+  .anhs.desk{opacity:.7}
+  .anhs b{font-weight:600;color:var(--mute)}
+  .anhs b.up{color:var(--up)} .anhs b.down{color:var(--down)} .anhs b.clash{color:var(--pend)}
+  .anhs i{font-style:normal;font-weight:700;margin-left:1px}
+  .anhs i.right{color:var(--up)} .anhs i.wrong{color:var(--down)} .anhs i.flat{color:var(--mute)} .anhs i.pending{color:var(--faint)}
+  .anh-entry{font-family:var(--mono);font-size:11px;color:var(--mute)}
+  .anh-state{
+    font-family:var(--mono);font-size:10px;letter-spacing:.04em;white-space:nowrap;
+    padding:1px 7px;border-radius:999px;border:1px solid var(--edge-2);color:var(--dim)
+  }
+  .anh-state.open{color:var(--focus);border-color:var(--focus)}
+
+  .anhtable{table-layout:fixed}
+  .anhtable th:first-child{width:96px}
+  .anhtable tbody th{color:var(--mute);font-size:11px;letter-spacing:.02em;text-transform:none;padding-top:7px}
+  .anhtable tr.anh-pricerow th{color:var(--dim)}
+  .anhtable td.anh-call{text-align:left;white-space:nowrap}
+  .anhtable td.anh-call .anconv{margin-left:6px}
+  .anhtable td.anh-price{font-family:var(--mono);font-size:11.5px;line-height:1.45}
+  .anhtable td.anh-price b{display:block;font-weight:600;color:var(--ink)}
+  .anhtable td.anh-price b.up{color:var(--up)}
+  .anhtable td.anh-price b.down{color:var(--down)}
+  .anhtable td.anh-price.pending,.anhtable td.anh-price.expired,.anhtable td.anh-price.done{color:var(--faint)}
+  .anhtable td.anh-price.live b{text-decoration:underline dotted var(--edge-2);text-underline-offset:3px}
+  .anh-px{display:block;font-size:10.5px;color:var(--mute)}
+  .anh-ran{display:block;font-size:10px;color:var(--faint);white-space:nowrap}
+  .anhtable td.anh-right{color:var(--up);font-weight:600}
+  .anhtable td.anh-wrong{color:var(--down);font-weight:600}
+  .anhtable td.anh-flat{color:var(--mute)}
+  .anhtable td.anh-pending,.anhtable td.anh-expired,.anhtable td.anh-nocall,.anh-nocall{color:var(--faint)}
+  .anh-nocall{font-size:11px}
+
+  .anhdetail{margin-top:10px;padding-top:10px;border-top:1px solid var(--edge)}
+  .anh-headline{font-size:12.5px;line-height:1.55;margin:0 0 10px}
+  .anh-sides{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:8px}
+  @media (max-width:760px){.anh-sides{grid-template-columns:1fr}}
+  .anh-sides h5{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim);margin:0 0 4px;font-weight:600}
+  .anh-sides p{font-size:12px;line-height:1.55;margin:0 0 4px;color:var(--mute)}
+  .anh-sides p b{color:var(--ink);font-weight:600}
+  .anh-sides em{color:var(--pend);font-style:normal}
+  .anh-story{margin:6px 0 0;padding-left:17px}
+  .anh-story li{font-size:12px;line-height:1.6;margin-bottom:2px}
+  .anh-story li::marker{color:var(--dim)}
+  .anhscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  @media (max-width:760px){
+    .anhtable,.anhsumtable{min-width:560px}
+    .anhtable th:first-child{width:84px}
+  }
+
+  .anrelayrow{gap:14px}
+  .anrelay{display:inline-flex;align-items:center;gap:6px;color:var(--faint);font-size:11px}
+  .anrelay input{
+    width:190px;background:var(--panel-2);color:var(--mute);
+    border:1px solid var(--edge);border-radius:var(--radius-sm);padding:4px 7px;
+    font-family:var(--mono);font-size:10.5px
+  }

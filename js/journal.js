@@ -14,11 +14,14 @@ let journal = (()=>{ try{ return JSON.parse(localStorage.getItem(JOURNAL_KEY)||'
 const jCfg = (()=>{
   let c;
   try{ c = JSON.parse(localStorage.getItem(JCFG_KEY)||'{}'); }catch(e){ c = {}; }
-  c = Object.assign({account:1000, riskPct:1}, c);
-  /*  Older saves predate the dollar field. Deriving it once from the pair they
-      did have keeps the two boxes agreeing from the first render, rather than
-      showing a blank that silently sizes nothing.                            */
-  if(!(c.riskUsd > 0)) c.riskUsd = c.account * (c.riskPct/100);
+  /*  Older saves priced risk as a percentage of an account balance. That
+      balance is gone now — size is told directly, in coins, when a trade is
+      logged — but a saved risk-per-trade dollar figure is still a real
+      setting worth keeping, so it is derived once from the old pair rather
+      than silently reset to blank the first time someone opens the form
+      after this changed.                                                   */
+  if(!(c.riskUsd > 0) && c.account > 0 && c.riskPct > 0) c.riskUsd = c.account * (c.riskPct/100);
+  delete c.account; delete c.riskPct;
   return c;
 })();
 
@@ -34,54 +37,50 @@ function jRiskUnit(t){ return Math.abs(t.entryPrice - t.invalidation); }
 
 /*  Sizing, expressed the way the trade is actually thought about.
 
-    The old version took account size and a risk percentage and handed back a
-    coin quantity. The arithmetic was right and the result was still useless:
-    it never said what it had risked, so a stale account value silently became
-    a wrong size. Risking $15 over a 15-point stop is one coin; if the box says
-    0.003 instead, the only way to find out why was to go and read the code.
+    There is no account balance anywhere in here. The old version took an
+    account size and a risk percentage and handed back a coin quantity — two
+    numbers standing in for the one that actually mattered, and a stale
+    account value silently produced a wrong size with nothing on screen to
+    catch it. Size is told directly now, the way a real position is: how
+    many coins. Everything else here just says what that quantity is worth —
+    the dollar notional, and the dollars actually on the line if the stop is
+    hit — the same forward arithmetic the closed-trade detail view already
+    used (`jSizeValue`), not a second copy of it.
 
-    So the risk AMOUNT is the input now, and everything else is shown as
-    working. The percentage is kept as a way of arriving at that amount, not as
-    the thing the size is computed from.                                      */
+    A risk-dollar figure still exists as an optional convenience: if you'd
+    rather say "I want to risk about $50" than work out the coin quantity
+    yourself, `jSizePlan` turns that into a suggested size. It only ever
+    fills the box when it is empty — the suggestion is a starting point, the
+    quantity you actually type in is the trade.                             */
 
-// the dollars on the line if the stop is hit — from a percentage of the account
-function jRiskAmount(account, riskPct){
-  if(!(account > 0) || !(riskPct > 0)) return null;
-  return account * (riskPct/100);
-}
-
-// ...and back the other way, so typing either box keeps the pair honest
-function jRiskPctOf(account, riskUsd){
-  if(!(account > 0) || !(riskUsd > 0)) return null;
-  return riskUsd / account * 100;
-}
-
-/*  The whole calculation, returned as its parts rather than one number, so the
-    panel can show its working and a wrong input is visible on the way past.
-
-    `leverage` is notional over account: what the position implies on a perp,
-    which is the number that decides whether a size is survivable. It is null
-    without an account to measure against — a leverage figure invented from a
-    missing account would be worse than none.                                 */
-function jSizePlan(entry, invalidation, riskUsd, account){
-  const stop = Math.abs(entry - invalidation);
-  if(!(stop > 0) || !(riskUsd > 0) || !isFinite(entry) || entry <= 0) return null;
-  const size = riskUsd / stop;
+// the coins that quantity is worth in dollars, and what the stop would cost —
+// pure forward arithmetic from a size the person actually typed in
+function jSizeValue(size, entry, invalidation){
+  if(!(size > 0) || !isFinite(entry) || entry <= 0) return null;
   const notional = size * entry;
+  const stop = isFinite(invalidation) ? Math.abs(entry - invalidation) : null;
+  const hasStop = stop != null && stop > 0;
   return {
-    stop, riskUsd, size, notional,
-    stopPct: stop / entry * 100,
-    leverage: account > 0 ? notional / account : null
+    size, notional,
+    stop: hasStop ? stop : null,
+    stopPct: hasStop ? stop / entry * 100 : null,
+    riskUsd: hasStop ? size * stop : null,
   };
 }
 
-/*  Kept at its original signature because the tests and older callers speak it:
-    account and percentage in, coin quantity out. It now routes through the same
-    path as the panel, so the two can never drift apart.                       */
-function jSuggestSize(entry, invalidation, account, riskPct){
-  const risk = jRiskAmount(account, riskPct);
-  if(risk == null) return null;
-  const plan = jSizePlan(entry, invalidation, risk, account);
+/*  The reverse direction: a risk amount and a stop distance, suggesting the
+    size that spends exactly that much if the stop is hit. Returned as its
+    parts, not one number, so the panel can show its working.               */
+function jSizePlan(entry, invalidation, riskUsd){
+  const stop = Math.abs(entry - invalidation);
+  if(!(stop > 0) || !(riskUsd > 0) || !isFinite(entry) || entry <= 0) return null;
+  const size = riskUsd / stop;
+  return { stop, riskUsd, size, notional: size * entry, stopPct: stop / entry * 100 };
+}
+
+// the suggestion on its own — a risk amount and a stop distance in, a coin quantity out
+function jSuggestSize(entry, invalidation, riskUsd){
+  const plan = jSizePlan(entry, invalidation, riskUsd);
   return plan ? plan.size : null;
 }
 
@@ -205,6 +204,9 @@ function jAdd(input){
     // the whole board at entry, not just the frame traded — see jFramesAt
     frames: input.frames || null,
     alignment: input.alignment != null ? input.alignment : null,
+    // the analyst call this trade was logged against, if any — a snapshot
+    // attached at entry (see jFindSourceReport), never a live reference
+    sourceReport: input.sourceReport || null,
     status: 'open', exitPrice: null, exitTime: null, closeNote: ''
   };
   journal = [t, ...journal];
@@ -234,9 +236,53 @@ function jDelete(id){
   jSave();
 }
 
+/* ---------- importing trades from outside the app ----------
+   The first (only, for now) source is mcp/bybit-import.js, run by hand on
+   whichever machine you keep your keys on: it signs into Bybit with a
+   read-only API key — never your account password — pulls your closed
+   positions, and writes them already shaped like a journal trade to a JSON
+   file. This only ever reads that file back in; it never talks to Bybit
+   itself, and the browser never sees an API key or secret.
+
+   Every imported trade carries the id Bybit gave the position that produced
+   it (`sourceId`), so importing the same file twice — or a file whose window
+   overlaps an earlier import — adds nothing twice. A trade logged by hand
+   never has a sourceId, so it is never a candidate for this check at all.  */
+function jImportTrades(list){
+  if(!Array.isArray(list)) return {added:0, skipped:0, error:'not a list of trades'};
+  const known = new Set(journal.map(t=>t.sourceId).filter(Boolean));
+  const next = [];
+  let added = 0, skipped = 0;
+  for(const raw of list){
+    const sym = raw && raw.symbol ? String(raw.symbol).trim().toUpperCase() : '';
+    const direction = raw && (raw.direction==='long' || raw.direction==='short') ? raw.direction : null;
+    if(!sym || !direction || !isFinite(raw.entryPrice) || !isFinite(raw.exitPrice)){ skipped++; continue; }
+    if(raw.sourceId && known.has(raw.sourceId)){ skipped++; continue; }
+    next.push({
+      id: jId(),
+      symbol: sym, frame: raw.frame || null, direction,
+      entryPrice: raw.entryPrice,
+      entryTime: isFinite(raw.entryTime) ? raw.entryTime : Date.now(),
+      invalidation: isFinite(raw.invalidation) ? raw.invalidation : null,
+      size: isFinite(raw.size) ? raw.size : null,
+      wave: (raw.wave||'').trim(), notes: (raw.notes||'').trim(),
+      verdict: null, frames: null, alignment: null, sourceReport: null,
+      status: 'closed',
+      exitPrice: raw.exitPrice,
+      exitTime: isFinite(raw.exitTime) ? raw.exitTime : raw.entryTime,
+      closeNote: (raw.closeNote||'').trim(),
+      sourceId: raw.sourceId || null,
+    });
+    if(raw.sourceId) known.add(raw.sourceId);
+    added++;
+  }
+  if(added){ journal = [...next, ...journal]; jSave(); }
+  return {added, skipped};
+}
+
 /* ---------- stats ----------
    Split two ways: overall (does the journal show an edge at all) and by the
-   grade Logan gave it at entry (does "strong" actually outperform "thin" in
+   grade the verdict engine gave it at entry (does "strong" actually outperform "thin" in
    what you really took — the verdict engine's own claim, checked against
    outcomes rather than assumed).                                            */
 function jStats(rows){
@@ -307,6 +353,24 @@ function jMonthOf(t){ return new Date(t.entryTime).toLocaleDateString('en-US',{m
 const J_ZONES = ['oversold','middle','overbought'];
 function jZoneOf(t){ return (t.verdict && t.verdict.zone) || null; }
 
+const J_SOURCE_KEYS = ['Backed by a call', 'No call attached'];
+function jSourceKeyOf(t){ return t.sourceReport ? J_SOURCE_KEYS[0] : J_SOURCE_KEYS[1]; }
+
+/*  The one question the analyst's own settled-call record can never answer:
+    when you actually traded on one, how did it go. A call graded "right"
+    doesn't mean the trade taken off it made money — sizing, entry, and exit
+    are yours, not the analyst's — so this reads straight off jSourceReport,
+    the snapshot already attached at logging time, rather than looking the
+    report back up (which could have moved on, or been removed).
+
+    Not analyst.js's ANALYST_AGREEMENTS — journal.js loads before analyst.js
+    (see index.html's script order), so that name doesn't exist yet at the
+    time this array is built. A local, duplicate list of the same three
+    words is simpler than reordering two files' load order over one
+    constant.                                                             */
+const J_AGREE_ORDER = ['agree', 'partial', 'clash'];
+function jAgreementOf(t){ return t.sourceReport ? (t.sourceReport.agreement || null) : null; }
+
 const J_PATTERNS = [
   {label:'Hour of day (local)', head:'Hour',  keyFn:jHourBlockOf,        order:J_HOUR_BLOCKS},
   {label:'Day of week',         head:'Day',   keyFn:jWeekdayOf,          order:J_WEEKDAYS},
@@ -314,6 +378,8 @@ const J_PATTERNS = [
   {label:'Stochastic zone at entry', head:'Zone', keyFn:jZoneOf,         order:J_ZONES},
   {label:'Direction',           head:'Side',  keyFn:t=>t.direction,      order:['long','short']},
   {label:'Frame',               head:'Frame', keyFn:t=>t.frame,          order:TFS.map(x=>x.key)},
+  {label:'Backed by an analyst call', head:'Call', keyFn:jSourceKeyOf,   order:J_SOURCE_KEYS},
+  {label:'Analyst agreement at entry (backed trades only)', head:'Agreement', keyFn:jAgreementOf, order:J_AGREE_ORDER},
 ];
 
 /* ---------- refresh ----------
@@ -368,6 +434,16 @@ function jGradeCls(g){
   if(g==='negative'||g==='no edge') return 'down';
   return 'dim';
 }
+// small inline marker on a row's symbol — backed by an analyst call or not,
+// visible without opening the detail panel
+function jSrcFlag(t){
+  return t.sourceReport ? '<i class="jsrcflag" title="Backed by an analyst call">◆</i>' : '';
+}
+// small inline marker for a trade that arrived via jImportTrades rather than
+// being logged by hand — same idea as jSrcFlag, a different source
+function jImportFlag(t){
+  return t.sourceId ? '<i class="jimportflag" title="Imported from Bybit">⇩</i>' : '';
+}
 
 // the row currently expanded into "closing" mode — an inline exit-price field
 // rather than a native prompt(), so it looks and behaves like the rest of Odysseus
@@ -401,7 +477,7 @@ function renderJournalOpen(){
         '</span>';
     } else {
       row.innerHTML =
-        '<span class="jsym">'+t.symbol+(t.wave?'<em>'+jEsc(t.wave)+'</em>':'')+'</span>'+
+        '<span class="jsym">'+t.symbol+(t.wave?'<em>'+jEsc(t.wave)+'</em>':'')+jSrcFlag(t)+'</span>'+
         '<span class="jdir '+(t.direction==='short'?'down':'up')+'">'+t.direction+'</span>'+
         '<span class="jnum">'+fmtUsd(t.entryPrice)+'</span>'+
         '<span class="jnum">'+fmtUsd(t.invalidation)+'</span>'+
@@ -440,7 +516,7 @@ function renderJournalClosed(){
     const row = document.createElement('div');
     row.className = 'jrow jrow-closed';
     row.innerHTML =
-      '<span class="jsym">'+t.symbol+(t.wave?'<em>'+jEsc(t.wave)+'</em>':'')+'</span>'+
+      '<span class="jsym">'+t.symbol+(t.wave?'<em>'+jEsc(t.wave)+'</em>':'')+jSrcFlag(t)+jImportFlag(t)+'</span>'+
       '<span class="jdir '+(t.direction==='short'?'down':'up')+'">'+t.direction+'</span>'+
       '<span class="jnum">'+fmtUsd(t.entryPrice)+'</span>'+
       '<span class="jnum">'+fmtUsd(t.exitPrice)+'</span>'+
@@ -520,20 +596,45 @@ function jFramesTable(t){
     : '');
 }
 
+/*  Was this trade backed by a call, and did it actually agree with it — the
+    question the "Backed by a call" pattern row answers in aggregate, spelled
+    out for this one trade. Lead time is measured against when the trade was
+    logged (not now), since that is the only honest "before or after" here.  */
+function jSourceBlock(t){
+  const s = t.sourceReport;
+  if(!s) return '';
+  const dirWord = s.direction === 'bull' ? 'bullish' : 'bearish';
+  const tradeSide = t.direction === 'short' ? 'bear' : 'bull';
+  const agreed = s.direction === tradeSide;
+  const leadH = (t.entryTime - s.at) / 3600e3;
+  const lead = isFinite(leadH)
+    ? (leadH >= 0
+        ? ', '+(leadH < 1 ? Math.round(Math.max(1,leadH*60))+'m' : leadH.toFixed(1)+'h')+' before this trade was logged'
+        : ', attached '+Math.abs(leadH).toFixed(1)+'h after — logged first, call attached later')
+    : '';
+  return '<div class="jdblock"><h4>Analyst call — '+(agreed?'agreed':'went against it')+'</h4>'+
+    '<p class="jdnote">'+jEsc(s.headline||'')+'</p>'+
+    '<p class="jdnote">Called <b>'+dirWord+'</b>'+
+      (s.confidence!=null ? ' at confidence '+Math.round(s.confidence) : '')+
+      (s.agreement ? ' ('+jEsc(String(s.agreement))+')' : '')+
+      lead+'.</p>'+
+  '</div>';
+}
+
 function jDetailHtml(t){
   const r = jR(t, t.exitPrice), pct = jPct(t, t.exitPrice);
-  const unit = jRiskUnit(t);
-  const risked = (t.size != null && unit > 0) ? t.size * unit : null;
-  const notional = (t.size != null) ? t.size * t.entryPrice : null;
+  const sv = t.size != null ? jSizeValue(t.size, t.entryPrice, t.invalidation) : null;
+  const risked = sv ? sv.riskUsd : null;
+  const notional = sv ? sv.notional : null;
 
   const facts = [
     ['Entered',  jFullTime(t.entryTime)],
     ['Closed',   jFullTime(t.exitTime)],
     ['Held',     jHeldFor(t)],
-    ['Frame',    t.frame],
+    ['Frame',    t.frame || '—'],
     ['Direction', t.direction],
     ['Entry',    fmtUsd(t.entryPrice)],
-    ['Stop',     fmtUsd(t.invalidation)],
+    ['Stop',     t.invalidation != null ? fmtUsd(t.invalidation) : '— (none recorded)'],
     ['Exit',     fmtUsd(t.exitPrice)],
     ['Size',     t.size != null ? (+t.size).toLocaleString('en-US',{maximumFractionDigits:8}) : '—'],
     ['Notional at entry', notional != null ? fmtUsd(notional) : '—'],
@@ -550,8 +651,11 @@ function jDetailHtml(t){
         (v.zone!=null ? 'Zone at entry: '+jEsc(String(v.zone))+'. ' : '')+
         (v.divergence ? 'Divergence was present. ' : '')+
       '</p></div>'
-    : '<div class="jdblock"><h4>Grade at entry</h4><p class="jdnote">No verdict was captured — '+
-      'that coin\'s data was not loaded when the trade was logged.</p></div>';
+    : '<div class="jdblock"><h4>Grade at entry</h4><p class="jdnote">'+
+      (t.sourceId
+        ? 'Imported from Bybit — the app was not open to grade it at entry.'
+        : 'No verdict was captured — that coin\'s data was not loaded when the trade was logged.')+
+      '</p></div>';
 
   const words = [];
   if(t.wave)      words.push('<div class="jdblock"><h4>Wave</h4><p class="jdnote">'+jEsc(t.wave)+'</p></div>');
@@ -561,7 +665,7 @@ function jDetailHtml(t){
   return '<div class="jdetail-in">'+
     '<dl class="jdfacts">'+facts+'</dl>'+
     '<div class="jdblock"><h4>Stochastics across frames, at entry</h4>'+jFramesTable(t)+'</div>'+
-    verdictBlock + words.join('') +
+    verdictBlock + jSourceBlock(t) + words.join('') +
   '</div>';
 }
 
@@ -678,24 +782,96 @@ function jUpdateVerdictPreview(){
   box.className = 'jverdict '+jGradeCls(a.grade);
 }
 
+/* ---------- the analyst call behind a trade ----------
+   The journal and the Analyst view have always been blind to each other —
+   this is the one link between them, and it stays a display-only one: a
+   snapshot of a report attached to a trade, never anything fed back into
+   either analyst. `analystReports`/`analystLatestFor`/`analystStale` are
+   globals from analyst.js, referenced here only inside functions that run
+   on user interaction — by the time any of these actually fire, both
+   scripts have finished loading, same as journal.js already leans on
+   `stoch`/`states`/`assessTrade` from other files (see the file header).  */
+
+// the draft state for whichever form is currently open — a snapshot of the
+// report, not a live reference, so it keeps saying what the call was at the
+// moment it was attached even if that report is edited or removed later
+let jDraftSource = null;
+let jSourceForSym = null;   // which symbol jDraftSource reflects — a lookup only re-fires when this changes
+
+// the newest live, directional call for a symbol — same filter analystShortlist
+// uses (fresh, and an actual bull/bear lean rather than split or neutral),
+// because a call with no direction is not one a trade can be graded against
+function jFindSourceReport(sym){
+  if(typeof analystReports === 'undefined' || !sym) return null;
+  const r = analystLatestFor(analystReports, sym);
+  if(!r || analystStale(r)) return null;
+  if(r.direction !== 'bull' && r.direction !== 'bear') return null;
+  return {at: r.at, symbol: r.symbol, direction: r.direction, agreement: r.agreement,
+          confidence: r.confidence, headline: r.headline};
+}
+
+// re-looks-up the attached call only when the symbol box actually changed —
+// typing in the middle of a symbol re-checks on every keystroke, same cost
+// as jUpdateVerdictPreview already pays on the same field
+function jSyncSource(){
+  const sym = ($('j-sym').value||'').trim().toUpperCase();
+  if(sym === jSourceForSym) return;
+  jSourceForSym = sym;
+  jDraftSource = jFindSourceReport(sym);
+  jRenderSource();
+}
+
+function jRenderSource(){
+  const el = $('j-source');
+  if(!el) return;
+  if(!jDraftSource){
+    el.innerHTML = '<span class="jdnote">No analyst call attached'+
+      (jSourceForSym ? ' for '+jEsc(jSourceForSym) : '')+'.</span>';
+    return;
+  }
+  const s = jDraftSource;
+  const dirWord = s.direction === 'bull' ? 'bullish' : 'bearish';
+  el.innerHTML =
+    '<span class="jsrctag '+(s.direction==='bull'?'up':'down')+'">'+dirWord+'</span> '+
+    jEsc(s.headline||'')+
+    (s.confidence!=null ? ' <em>('+Math.round(s.confidence)+')</em>' : '')+
+    ' <button type="button" class="ghost jsrcunlink" id="j-source-unlink">Unlink</button>';
+  const btn = $('j-source-unlink');
+  if(btn) btn.onclick = ()=>{ jDraftSource = null; jRenderSource(); };
+}
+
+/*  prefill fills the form in; it never saves. The gap between a filled form and
+    a logged trade is deliberate: it is what keeps the journal a record of what
+    the user actually did rather than of what something else proposed.        */
 function jOpenForm(prefill){
   const p = prefill || {};
   $('j-sym').value = p.symbol || active || '';
   jBuildFrameOptions();
   $('j-frame').value = p.frame || (shown && shown[0]) || TFS[2].key;
-  jSetDir('long');
-  const px = jLastPrice(($('j-sym').value||'').trim().toUpperCase());
+  jSetDir(p.direction === 'short' ? 'short' : 'long');
+  const sym = ($('j-sym').value||'').trim().toUpperCase();
+  // a live position's own entry beats the last price the app happens to hold
+  const px = (p.entryPrice != null && isFinite(p.entryPrice)) ? p.entryPrice : jLastPrice(sym);
   $('j-entry').value = px!=null ? px : '';
   $('j-entrytime').value = p.entryTime!=null ? jLocalInputValue(p.entryTime) : jNowLocalInput();
-  $('j-inval').value = '';
-  $('j-size').value = '';
-  $('j-wave').value = '';
-  $('j-notes').value = '';
-  $('j-account').value = jCfg.account;
-  $('j-riskpct').value = jCfg.riskPct;
-  $('j-riskusd').value = jCfg.riskUsd;
+  // a suggested invalidation is a number to check, not one to trust — but an
+  // empty box is the field people most often leave wrong, so it gets filled
+  $('j-inval').value = (p.invalidation != null && isFinite(p.invalidation)) ? p.invalidation : '';
+  $('j-size').value = (p.size != null && isFinite(p.size)) ? p.size : '';
+  $('j-wave').value = p.wave || '';
+  $('j-notes').value = p.notes || '';
+  $('j-riskusd').value = jCfg.riskUsd || '';
+  // an explicit attach (from an analyst card's "Log this trade") wins outright;
+  // otherwise this looks up the newest live call for whatever symbol landed in
+  // the box, exactly what typing that symbol in by hand would also find
+  jSourceForSym = sym;
+  jDraftSource = p.sourceReport !== undefined ? p.sourceReport : jFindSourceReport(sym);
+  jRenderSource();
   $('j-form').hidden = false;
   jRenderSizeWork();
+  // with entry and invalidation both present and a risk amount saved from last
+  // time, a suggested size fills in rather than the box arriving blank
+  jFillSuggestedSize();
   jUpdateVerdictPreview();
   $('j-sym').focus();
 }
@@ -706,61 +882,62 @@ function jNum(n, dp){
   return n.toFixed(dp == null ? 6 : dp).replace(/\.?0+$/, '');
 }
 
-/*  The percentage and the dollar amount are two ways of saying the same thing,
-    so whichever one was typed drives the other. Without this the two boxes
-    disagree silently and the size follows whichever the code happened to read.  */
-function jSyncRisk(from){
-  const account = parseFloat($('j-account').value);
-  if(from === 'usd'){
-    const usd = parseFloat($('j-riskusd').value);
-    const pct = jRiskPctOf(account, usd);
-    if(pct != null) $('j-riskpct').value = jNum(pct, 3);
-  }else{
-    const pct = parseFloat($('j-riskpct').value);
-    const usd = jRiskAmount(account, pct);
-    if(usd != null) $('j-riskusd').value = jNum(usd, 2);
-  }
-  jFillSuggestedSize();
-}
-
 /*  Shows what the numbers on screen actually mean, every time they change.
-    The original panel filled in a quantity and said nothing else, so a size
-    computed from the wrong risk looked exactly like a size computed from the
-    right one. Stating the risk and the stop distance back makes a mistaken
-    input obvious at the moment it is made.                                   */
+    Size, typed directly, is the trade — so it leads: if there is one, this
+    states what it is worth and what it risks, forward arithmetic only, the
+    same jSizeValue the closed-trade detail view uses. Only when the size box
+    is empty does it fall back to describing what a risk amount would buy,
+    and says plainly that that is a suggestion, not the plan.               */
 function jRenderSizeWork(){
   const el = $('j-sizework');
   if(!el) return;
   const entry = parseFloat($('j-entry').value), inval = parseFloat($('j-inval').value);
-  const riskUsd = parseFloat($('j-riskusd').value), account = parseFloat($('j-account').value);
+  const size = parseFloat($('j-size').value);
+  const riskUsd = parseFloat($('j-riskusd').value);
 
-  if(!(riskUsd > 0)){ el.textContent = 'Set a risk amount to size a trade.'; el.className = 'jsizework'; return; }
-  if(!isFinite(entry) || !isFinite(inval)){
-    el.textContent = 'Risking '+fmtUsd(riskUsd)+' per trade. Enter a price and an invalidation to size one.';
+  if(size > 0){
+    const unit = size === 1 ? 'coin' : 'coins';
+    if(!isFinite(entry) || entry <= 0){
+      el.textContent = jNum(size)+' '+unit+'. Enter a price to see what that is worth.';
+      el.className = 'jsizework';
+      return;
+    }
+    const sv = jSizeValue(size, entry, inval);
+    let s = jNum(size)+' '+unit+' ≈ '+fmtUsd(sv.notional)+' notional';
+    s += sv.riskUsd != null
+      ? ', risking '+fmtUsd(sv.riskUsd)+' over a stop of '+jNum(sv.stop, 6)+' ('+sv.stopPct.toFixed(2)+'%)'
+      : ' — set an invalidation to see what it risks';
+    el.textContent = s + '.';
     el.className = 'jsizework';
     return;
   }
-  const p = jSizePlan(entry, inval, riskUsd, account);
+
+  if(!(riskUsd > 0)){
+    el.textContent = 'Type a size, in coins, to see its dollar value — or set a risk amount below and a size will be suggested.';
+    el.className = 'jsizework'; return;
+  }
+  if(!isFinite(entry) || !isFinite(inval)){
+    el.textContent = 'Risking '+fmtUsd(riskUsd)+' per trade. Enter a price and an invalidation to suggest a size.';
+    el.className = 'jsizework';
+    return;
+  }
+  const p = jSizePlan(entry, inval, riskUsd);
   if(!p){ el.textContent = 'Invalidation can’t equal entry — there is no stop distance to size against.';
           el.className = 'jsizework warn'; return; }
 
-  let s = 'Risking '+fmtUsd(p.riskUsd)+' over a stop of '+jNum(p.stop, 6)+
-          ' ('+p.stopPct.toFixed(2)+'%) → size '+jNum(p.size)+
-          ' ≈ '+fmtUsd(p.notional)+' notional';
-  if(p.leverage != null) s += ' ≈ '+p.leverage.toFixed(2)+'× the account';
-  el.textContent = s + '.';
-  /*  Leverage is flagged, not blocked. The number is the user's to choose —
-      but a size that quietly needs 20× is worth seeing before it is taken.   */
-  el.className = 'jsizework' + (p.leverage != null && p.leverage > 10 ? ' warn' : '');
+  el.textContent = 'Risking '+fmtUsd(p.riskUsd)+' over a stop of '+jNum(p.stop, 6)+
+    ' ('+p.stopPct.toFixed(2)+'%) suggests a size of '+jNum(p.size)+' ≈ '+fmtUsd(p.notional)+' notional.';
+  el.className = 'jsizework';
 }
 
 function jFillSuggestedSize(){
   const entry = parseFloat($('j-entry').value), inval = parseFloat($('j-inval').value);
-  const riskUsd = parseFloat($('j-riskusd').value), account = parseFloat($('j-account').value);
+  const riskUsd = parseFloat($('j-riskusd').value);
+  if(isFinite(entry) && isFinite(inval) && !$('j-size').value){
+    const p = jSizePlan(entry, inval, riskUsd);
+    if(p) $('j-size').value = jNum(p.size);
+  }
   jRenderSizeWork();
-  if(!isFinite(entry) || !isFinite(inval)) return;
-  const p = jSizePlan(entry, inval, riskUsd, account);
-  if(p && !$('j-size').value) $('j-size').value = jNum(p.size);
 }
 
 function jSaveForm(){
@@ -777,10 +954,8 @@ function jSaveForm(){
     $('jnote').textContent = 'Invalidation can’t equal entry — there would be no risk unit to size or score against.';
     return;
   }
-  jCfg.account = parseFloat($('j-account').value) || jCfg.account;
-  jCfg.riskPct = parseFloat($('j-riskpct').value) || jCfg.riskPct;
-  jCfg.riskUsd = parseFloat($('j-riskusd').value) || jCfg.riskUsd;
-  jSaveCfg();
+  const savedRisk = parseFloat($('j-riskusd').value);
+  if(savedRisk > 0){ jCfg.riskUsd = savedRisk; jSaveCfg(); }
 
   const entryTime = jParseLocalInput($('j-entrytime').value);
 
@@ -794,6 +969,7 @@ function jSaveForm(){
     symbol: sym, frame, direction: jDir, entryPrice, entryTime, invalidation, size,
     wave: $('j-wave').value, notes: $('j-notes').value,
     frames, alignment: jFramesAlignment(frames, jDir),
+    sourceReport: jDraftSource,
     // the fuller "stochastic condition" at entry, not just the headline grade —
     // zone in particular is what the Patterns breakdown groups by
     // states and stoch are populated together (see analyse()), so a live
@@ -807,6 +983,7 @@ function jSaveForm(){
   });
   $('j-form').hidden = true;
   $('jnote').textContent = 'Logged.';
+  jDraftSource = null; jSourceForSym = null;
   renderJournal();
 }
 

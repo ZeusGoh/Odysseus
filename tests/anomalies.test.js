@@ -1,14 +1,11 @@
 /* anomalies.test.js — the anomaly log: dedup, the settled-bar price lookup, the held/faded/
    reversed band, the bucket stats, the one that matters most — excess follow-through, where a
-   flag on a day the whole board rallied must NOT grade as held just because price rose — and
-   the coiled flag, which is directionless and so cannot be scored the same way at all.
+   flag on a day the whole board rallied must NOT grade as held just because price rose.
    part of Odysseus */
 const {load} = require('./harness');
 const app = load(['sessions.js', 'anomalies.js']);
 const {anomKey, anomSnapshot, anomAdd, anomPriceAt, anomCovers, anomBoardReturn,
-       anomGrade, anomScore, anomStats, anomFor, ANOM_CHECKS, ANOM_THIN,
-       coilAtrPct, coilRange, coilRangeBetween, coilRead, coilSignals, coilCandidates,
-       coilSnapshot, anomCoiledStats, COIL_TIGHT, COIL_RECENT, COIL_BASE} = app;
+       anomGrade, anomScore, anomStats, anomFor, ANOM_CHECKS, ANOM_THIN} = app;
 
 const HOUR = 3600000;
 const T0 = Date.UTC(2026, 0, 5, 9, 0, 0);          // 09:00 UTC — inside London
@@ -51,7 +48,7 @@ suite('anomSnapshot — the full picture at flag time, not just the label');
   check('positioning is kept', [s.oiChg, s.flow], [14, 'New longs']);
   check('the session it fired in is derived, no candles needed', s.session, 'london');
   check('it starts life unscored', s.checks, {});
-  check('typed so the coiled flag can share this log', s.type, 'move');
+  check('typed as a move', s.type, 'move');
 }
 
 suite('anomAdd — dedup on the way in');
@@ -208,9 +205,6 @@ suite('anomStats — bucketed by what the detector called it');
   ok('everything here is flagged thin under the 30-flag floor', s.kinds.spec.byH[1].thin);
   check('an unscored flag does not count toward a checkpoint',
         anomStats([mk('spec', {})]).kinds.spec.byH[1].n, 0);
-  // a coiled flag grades on expanded/mild/quiet, so it must not land in these buckets at all
-  check('coiled flags are kept out of the move buckets',
-        anomStats(log.concat([{sym:'C', type:'coiled', at:T0, checks:{1:{grade:'expanded'}}}])).total, 4);
 }
 
 suite('anomFor — the flag a News row should tag itself with');
@@ -224,143 +218,3 @@ suite('anomFor — the flag a News row should tag itself with');
 suite('checkpoints');
 check('three of them, inside a day', ANOM_CHECKS, [1, 4, 24]);
 check('the thin floor matches History and Sessions', ANOM_THIN, 30);
-
-/* ================= the coiled flag ================= */
-
-suite('coilRange / coilAtrPct — the units compression is measured in');
-{
-  const b = bars(T0, 4, 100, 10, 1);          // every bar spans 95–105
-  near('the span of a flat series is its bar spread', coilRange(b, 0, 4), (105-95)/95*100, 0.01);
-  check('an empty slice has no range', coilRange(b, 0, 0), null);
-  ok('true range is positive on a series that actually moves', coilAtrPct(b, 1, 4) > 0);
-  check('one bar cannot make a true range, there is nothing before it', coilAtrPct(b, 0, 1), null);
-}
-
-suite('coilRangeBetween — bounded by the clock, not by bar index');
-{
-  const b = bars(T0, 6, 100, (i)=> i>=3 ? 20 : 4, 1);
-  const early = coilRangeBetween(b, T0, T0 + 3*HOUR);
-  const late  = coilRangeBetween(b, T0 + 3*HOUR, T0 + 6*HOUR);
-  ok('the quiet stretch is narrow', early < late);
-  check('a window with no bars in it has no range',
-        coilRangeBetween(b, T0 + 99*HOUR, T0 + 100*HOUR), null);
-}
-
-suite('coilRead — compression is the entry ticket');
-{
-  // 18 wide bars, then 6 tight ones: exactly the shape a coiled coin makes
-  const tight = bars(T0, COIL_BASE + COIL_RECENT, 100, i => i < COIL_BASE ? 10 : 1, 1);
-  const r = coilRead(tight);
-  ok('a range that collapsed to a tenth reads as compressed', r.coiled);
-  ok('and the ratio is well under the threshold', r.compression < COIL_TIGHT);
-
-  const steady = bars(T0, COIL_BASE + COIL_RECENT, 100, 10, 1);
-  check('a coin behaving normally is not coiled', coilRead(steady).coiled, false);
-  near('its compression sits around 1', coilRead(steady).compression, 1, 0.25);
-
-  const loud = bars(T0, COIL_BASE + COIL_RECENT, 100, i => i < COIL_BASE ? 1 : 10, 1);
-  check('a coin that just EXPANDED is not coiled either', coilRead(loud).coiled, false);
-
-  check('too little history reads as nothing rather than guessing',
-        coilRead(bars(T0, 5, 100, 1, 1)), null);
-}
-
-suite('coilRead — quiet volume is the second signal, not a spike');
-{
-  const n = COIL_BASE + COIL_RECENT;
-  const climbing = bars(T0, n, 100, i => i < COIL_BASE ? 10 : 1, i => i < COIL_BASE ? 100 : 200);
-  const r = coilRead(climbing);
-  near('volume doubled while the range collapsed', r.volRatio, 2, 0.01);
-  check('so both signals are on the flag', coilSignals(r), ['compression','volume']);
-
-  const dryingUp = bars(T0, n, 100, i => i < COIL_BASE ? 10 : 1, i => i < COIL_BASE ? 100 : 50);
-  check('volume drying up is compression alone', coilSignals(coilRead(dryingUp)), ['compression']);
-  check('open interest building adds the third',
-        coilSignals(Object.assign({oiChg:25}, coilRead(climbing))),
-        ['compression','volume','oi']);
-  check('an OI read that never arrived is simply absent, not counted as zero',
-        coilSignals(Object.assign({oiChg:null}, coilRead(climbing))), ['compression','volume']);
-}
-
-suite('coilCandidates — tightest first, and only the coiled ones');
-{
-  const n = COIL_BASE + COIL_RECENT;
-  const board = [
-    {sym:'LOOSE', bars: bars(T0, n, 100, 10, 1)},
-    {sym:'TIGHT', bars: bars(T0, n, 100, i => i < COIL_BASE ? 10 : 0.5, 1)},
-    {sym:'MID',   bars: bars(T0, n, 100, i => i < COIL_BASE ? 10 : 3, 1)}
-  ];
-  const c = coilCandidates(board);
-  check('only the compressed coins are candidates', c.map(x=>x.sym), ['TIGHT','MID']);
-  ok('with signals level, the tightest is ranked first', c[0].compression < c[1].compression);
-  ok('each carries the pre-flag range every checkpoint is measured against',
-     c[0].preRange[1] != null && c[0].preRange[4] != null && c[0].preRange[24] != null);
-}
-{
-  /*  The trap the live board exposed: a range collapses hardest on coins nobody is trading, so
-      ranking on tightness alone fills the log with dead names and drops the one coin showing
-      compression WITH volume arriving — which is the whole point of the flag.                */
-  const n = COIL_BASE + COIL_RECENT;
-  const board = [
-    {sym:'DEAD',    bars: bars(T0, n, 100, i => i < COIL_BASE ? 10 : 0.4,
-                                            i => i < COIL_BASE ? 100 : 20)},
-    {sym:'LOADING', bars: bars(T0, n, 100, i => i < COIL_BASE ? 10 : 2,
-                                            i => i < COIL_BASE ? 100 : 300)}
-  ];
-  const c = coilCandidates(board);
-  ok('the deader coin is genuinely tighter', c.find(x=>x.sym==='DEAD').compression <
-                                             c.find(x=>x.sym==='LOADING').compression);
-  check('but compression WITH volume outranks compression alone', c[0].sym, 'LOADING');
-  check('and it is the one carrying two signals', coilSignals(c[0]), ['compression','volume']);
-}
-
-suite('coilCheck — a directionless flag is scored on whether the range widened');
-{
-  const n = COIL_BASE + COIL_RECENT;
-  const flagAt = T0 + n*HOUR;
-  const pre = bars(T0, n, 100, i => i < COIL_BASE ? 10 : 1, 1);
-  const cand = coilCandidates([{sym:'TIGHT', bars: pre}])[0];
-  const snap = coilSnapshot(cand, flagAt);
-
-  check('it is typed coiled', snap.type, 'coiled');
-  check('and carries no direction, because it does not claim one', snap.dir, 'flat');
-
-  // the range blows out to 20x after the flag
-  const after = pre.concat(bars(flagAt, 4, 100, 20, 1));
-  const log = [JSON.parse(JSON.stringify(snap))];
-  anomScore(log, [{sym:'TIGHT', bars: after}], flagAt + 48*HOUR);
-  const c = log[0].checks[1];
-  ok('the range after the flag is far wider than before it', c.ratio > 2);
-  check('so the flag expanded', c.grade, 'expanded');
-  ok('which way it broke is recorded too, for information', 'move' in c);
-
-  // and the failure case: it stays just as tight as it was
-  const still = pre.concat(bars(flagAt, 4, 100, 1, 1));
-  const log2 = [JSON.parse(JSON.stringify(snap))];
-  anomScore(log2, [{sym:'TIGHT', bars: still}], flagAt + 48*HOUR);
-  check('a coin that stayed shut is quiet, not a failed prediction of direction',
-        log2[0].checks[1].grade, 'quiet');
-  ok('the grade vocabulary never borrows held/faded/reversed',
-     ['expanded','mild','quiet'].includes(log2[0].checks[1].grade));
-}
-
-suite('anomCoiledStats — did compression actually precede expansion');
-{
-  const mk = grades => ({
-    sym:'X', type:'coiled', at:T0, dir:'flat',
-    checks: Object.fromEntries(Object.entries(grades).map(([h,g]) => [h, {grade:g, ratio:2}]))
-  });
-  const log = [
-    mk({1:'expanded', 4:'expanded', 24:'quiet'}),
-    mk({1:'expanded', 4:'quiet',    24:'quiet'}),
-    mk({1:'quiet',    4:'mild',     24:'mild'}),
-    {sym:'Y', type:'move', kind:'spec', at:T0, checks:{1:{grade:'held'}}}
-  ];
-  const s = anomCoiledStats(log);
-  check('only coiled flags are counted', s.n, 3);
-  check('two of three expanded within the hour', s.byH[1].expandedPct, 67);
-  check('the split is kept', [s.byH[4].expanded, s.byH[4].mild, s.byH[4].quiet], [1, 1, 1]);
-  check('none expanded by the next day', s.byH[24].expandedPct, 0);
-  ok('and it is flagged thin', s.byH[1].thin);
-  check('nothing scored reports nothing, not zero', anomCoiledStats([]).byH[1].expandedPct, null);
-}

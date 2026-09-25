@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "odysseus-crowd": { "type": "stdio", "command": "node", "args": ["./mcp/server.js", "--tools", "crowd"] }
+  }
+}

@@ -28,12 +28,39 @@ global.near = (label, got, want, tol) => {
          console.log('  FAIL ' + label); }
 };
 
+/*  Asynchronous suites.
+
+    Everything here used to be synchronous, and a test file that wrapped itself
+    in an async IIFE registered exactly zero assertions and reported a clean
+    pass — the worst possible failure mode for a test runner. The agent loop is
+    async end to end (it awaits the model, awaits each tool, and now awaits a
+    human pressing a button), so it cannot be tested any other way.
+
+    `later(fn)` queues a block to run after every file has been loaded, in
+    registration order. Assertions inside it count exactly as they do anywhere
+    else; the only rule is that a suite() called inside a later() block names
+    the output from that point on, which is why they run one at a time rather
+    than concurrently.                                                        */
+const deferred = [];
+global.later = fn => { deferred.push(fn); };
+
 const filter = process.argv[2];
 const files = fs.readdirSync(__dirname).filter(f => f.endsWith('.test.js'))
                 .filter(f => !filter || f.includes(filter));
 for (const f of files) require(path.join(__dirname, f));
 
-console.log('\n' + '-'.repeat(52));
-if (failures.length){ console.log('\n' + failures.join('\n\n') + '\n'); }
-console.log(`${pass} passed, ${fail} failed`);
-process.exit(fail ? 1 : 0);
+(async ()=>{
+  for (const fn of deferred){
+    try{ await fn(); }
+    catch(e){
+      fail++;
+      failures.push(`${current} › threw out of an async suite\n       ${e && e.stack || e}`);
+      console.log('  FAIL (threw) ' + (e && e.message));
+    }
+  }
+
+  console.log('\n' + '-'.repeat(52));
+  if (failures.length){ console.log('\n' + failures.join('\n\n') + '\n'); }
+  console.log(`${pass} passed, ${fail} failed`);
+  process.exit(fail ? 1 : 0);
+})();

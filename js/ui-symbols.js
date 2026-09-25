@@ -21,7 +21,16 @@ async function loadUniverse(){
         if(x.quoteCoin!=='USDT' && x.quoteCoin!=='USDC') return;
         // in futures, take only the perpetuals — not dated contracts
         if(mkt==='linear' && x.contractType && x.contractType!=='LinearPerpetual') return;
-        if(!found.has(x.baseCoin))
+        /*  One entry per coin, and it is the USDT contract when there is one.
+            Bybit lists the USDC perpetual (HYPEPERP, BTCPERP …) before the
+            USDT one for some 70 coins, and "first seen wins" was quietly
+            picking the thinner book — where candles work, but positioning
+            data does not (the long/short ratio refuses USDC perps), and
+            the curated list, the sweep and the Anomaly board all mean the
+            USDT book anyway. A USDC-only coin still gets its USDC contract. */
+        const have = found.get(x.baseCoin);
+        const usdt = x.quoteCoin === 'USDT';
+        if(!have || (usdt && !/USDT$/.test(have.bybit)))
           found.set(x.baseCoin, {sym:x.baseCoin, name:x.baseCoin, bybit:x.symbol});
       });
     }catch(e){}
@@ -93,6 +102,12 @@ async function switchSymbol(code){
     $('charts').innerHTML = '';
   } else {
     render(); buildCharts();
+  }
+  // the crowd panel and the long/short panel on the Terminal follow the same symbol bar
+  if(typeof view !== 'undefined' && view === 'terminal'){
+    if(typeof crowdTermShow === 'function') crowdTermShow();
+    if(typeof lsrShow === 'function') lsrShow();
+    if(typeof oicvdShow === 'function') oicvdShow();
   }
   await load();
 }

@@ -229,7 +229,7 @@ function buildCharts(){
       '<div class="legend"><span><i style="background:var(--up)"></i>%K</span>'+
       '<span><i style="background:var(--pend)"></i>%D</span>'+
       '<span><i style="background:#6E7BFF"></i>EMA 200</span>'+
-      '<span>arrows mark crosses</span><span>dashed marks divergence</span></div></header>'+
+      '<span>arrows mark crosses</span><span>dashed marks divergence</span><span>dotted marks hidden divergence</span></div></header>'+
       (live ? '<div class="panewrap"><div class="ohlc" id="oh-'+tf.key+'"></div>'+
               '<div class="pane" id="pp-'+tf.key+'"></div></div>'
             : '<canvas id="cv-'+tf.key+'" height="'+H+'"></canvas>')+
@@ -388,7 +388,8 @@ function drawCanvas(key, H){
     if(pp.length<2) return;
     const col = dv.dir==='bull' ? C('--up') : C('--down');
     const price = dv.dir==='bull' ? c=>c.l : c=>c.h;
-    g.strokeStyle=col; g.lineWidth=1.6; g.setLineDash([5,4]); g.globalAlpha = dv.pending ? .55 : .95;
+    // regular divergence dashes; hidden (continuation) dots — same colour, different claim
+    g.strokeStyle=col; g.lineWidth=1.6; g.setLineDash(dv.hidden ? [1.5,3.5] : [5,4]); g.globalAlpha = dv.pending ? .55 : .95;
 
     g.beginPath();
     pp.forEach((pt,i)=>{
@@ -429,7 +430,7 @@ function drawCanvas(key, H){
       g.setLineDash([]); g.globalAlpha=1;
       const n = st.candles.length-1;
       box.innerHTML = rs.slice(-8).map(r=>
-        '<b>'+(r.dir==='bull'?'bullish':'bearish')+'</b> '+(n-r.from)+'→'+(n-r.to)+
+        '<b>'+(r.dir==='bull'?'bullish':'bearish')+(r.hidden?' hidden':'')+'</b> '+(n-r.from)+'→'+(n-r.to)+
         ' bars back, %K '+r.level[0].toFixed(0)+'→'+r.level[1].toFixed(0)+' — '+r.why).join('<br>');
       box.hidden = false;
     } else { box.innerHTML = ''; box.hidden = true; }

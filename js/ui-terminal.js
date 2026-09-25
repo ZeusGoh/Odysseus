@@ -36,8 +36,8 @@ const SIG = {
   'none':           {text:'Insufficient history', color:'var(--mute)'}
 };
 
-function signalText(key){
-  const s = states[active][key];
+function signalText(key, sym){
+  const s = states[sym || active][key];
   if(!s || s.type==='none') return {title:SIG.none.text, sub:'building the series'};
 
   if(s.pending){
@@ -137,9 +137,10 @@ function buildPanels(){
     const dv = divNow[active][tf.key];
     if(dv && (dv.pending || dv.barsAgo <= 12)){
       const n = dv.legs+1;
-      const what = (dv.dir==='bull'?'Bull':'Bear')+' divergence';
-      const how = n+' legs · '+(dv.dir==='bull' ? 'price lower, %K higher'
-                                                : 'price higher, %K lower')+
+      const what = (dv.dir==='bull'?'Bull':'Bear')+(dv.hidden?' hidden':'')+' divergence';
+      const how = n+' legs · '+(dv.hidden
+                    ? (dv.dir==='bull' ? 'price higher low, %K lower — continuation' : 'price lower high, %K higher — continuation')
+                    : (dv.dir==='bull' ? 'price lower, %K higher' : 'price higher, %K lower'))+
                   ' · '+(dv.pending ? 'leg unset until it turns' : barsTag(dv.barsAgo));
       (dv.pending ? pot : conf).push({tf, dir:dv.dir, what, how});
     }
@@ -355,7 +356,7 @@ function render(){
       '<div class="dvg">'+(dv
         ? '<span class="chip" style="color:'+(dv.dir==='bull'?'var(--up)':'var(--down)')+
           ';background:'+(dv.dir==='bull'?'rgba(62,207,142,.10)':'rgba(240,97,109,.10)')+'">'+
-          (dv.dir==='bull'?'Bull':'Bear')+'</span>'+
+          (dv.dir==='bull'?'Bull':'Bear')+(dv.hidden?' hid':'')+'</span>'+
           '<span class="dmeta num">'+(dv.legs+1)+'L '+(dv.pending?'live':barsTag(dv.barsAgo))+'</span>'
         : '<span class="none">·</span>')+'</div>';
     rows.appendChild(el);

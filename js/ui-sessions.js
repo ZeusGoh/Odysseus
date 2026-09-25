@@ -9,9 +9,12 @@ function sessBadge(label, state, tone){
          '<span class="sessval '+cls+'">'+state+'</span></div>';
 }
 
-function renderSessionsLive(){
-  const box = $('sess-live');
-  const live = sessionsLive(active);
+// `sym` and `box` default to the view's own, so the Bitcoin desk can draw the
+// same read for BTC into its own panel without a second copy of any of this
+function renderSessionsLive(sym, box){
+  sym = sym || active;
+  box = box || $('sess-live');
+  const live = sessionsLive(sym);
   if(!live){ box.innerHTML = '<div class="loading">Not enough 1H history loaded yet.</div>'; return; }
 
   const parts = [];
@@ -58,12 +61,15 @@ function sessRateRow(label, sub, rate, thin, n){
     '</div>';
 }
 
-function renderSessionsStats(){
-  const box = $('sess-stats'), note = $('sessnote');
-  const s = sessionsFor(active);
+function renderSessionsStats(sym, box, sweep, note){
+  sym = sym || active;
+  box = box || $('sess-stats');
+  sweep = sweep || $('sess-sweep');
+  if(note === undefined) note = $('sessnote');
+  const s = sessionsFor(sym);
   if(!s){
     box.innerHTML = '<div class="loading">Not enough closed sessions in the loaded history yet.</div>';
-    note.textContent = '';
+    if(note) note.textContent = '';
     return;
   }
   box.innerHTML =
@@ -81,9 +87,9 @@ function renderSessionsStats(){
           s.ny.continuationGivenNoSwept+'% when it did not.'
         : '.')
     : '';
-  $('sess-sweep').textContent = sweepLine;
+  sweep.textContent = sweepLine;
 
-  note.textContent = 'Dimmed rows have fewer than 30 days behind them. Break direction is decided by the '+
+  if(note) note.textContent = 'Dimmed rows have fewer than 30 days behind them. Break direction is decided by the '+
     'first London bar to trade beyond Asia\'s range, not by where London closed. This measures only the '+
     'history currently loaded for this coin, ignores fees and slippage, and past behaviour is not a promise '+
     'about tomorrow — read it as a lean, not proof.';

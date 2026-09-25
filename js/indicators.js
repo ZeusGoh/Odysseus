@@ -236,9 +236,21 @@ function unbroken(at, i1, i2, v1, v2, kind, tol){
   return true;
 }
 
-/*  Divergence compares leg heights: bearish wants price highs rising while the
-    stochastic tops fall, bullish wants price lows falling while the stochastic
-    bottoms rise. Legs that keep diverging chain into ONE run.                 */
+/*  Divergence compares leg heights. Two kinds:
+
+      regular  — the reversal kind. Bullish: price lows FALLING while the
+                 stochastic bottoms RISE. Bearish: price highs rising while
+                 the tops fall. Price is pushing on, the oscillator is not
+                 confirming.
+      hidden   — the continuation kind. Bullish: price holds a HIGHER low while
+                 the stochastic makes a LOWER low — the pullback went deeper on
+                 the oscillator than on price, which is what a pullback in an
+                 uptrend looks like when the trend is intact. Bearish is the
+                 mirror: a lower high on price, a higher high on the lines.
+
+    Both chain across legs into ONE run. A hidden run carries hidden:true so
+    every reader can tell the two apart — they argue for the same direction
+    but from opposite shapes, and the backtest deliberately keeps them apart. */
 function divergences(k, d, high, low, cfg){
   const c = cfg || {};
   const minBars = c.minBars === undefined ? 3     : c.minBars;
@@ -250,22 +262,29 @@ function divergences(k, d, high, low, cfg){
 
   const sw = swings(k, d, high, low, true);
   const rejects = [];
-  const rej = (p1,p2,dir,why) => rejects.push({dir, from:p1.kIdx, to:p2.kIdx, why,
-                                               a:p1, b:p2, level:[p1.level,p2.level]});
+  const rej = (p1,p2,dir,why,hidden) => rejects.push({dir, hidden:!!hidden, from:p1.kIdx, to:p2.kIdx, why,
+                                                      a:p1, b:p2, level:[p1.level,p2.level]});
 
-  const build = (kind, dir) => {
+  const build = (kind, dir, hidden) => {
     const list = sw.filter(x=>x.kind===kind);
     const legs = [];
     for(let b=1;b<list.length;b++){
       for(let a=b-1;a>=Math.max(0,b-maxBack);a--){
         const p1 = list[a], p2 = list[b];
         const span = p2.kIdx - p1.kIdx;
-        if(span < minBars){ rej(p1,p2,dir,'only '+span+' bars apart'); continue; }
-        if(span > maxBars){ rej(p1,p2,dir,span+' bars apart, over the '+maxBars+'-bar limit'); continue; }
         const dp = (p2.price-p1.price)/p1.price, dk = p2.level-p1.level;
-        const ok = dir==='bull' ? (dp < -minPct && dk >  minK)
-                                : (dp >  minPct && dk < -minK);
-        if(!ok){
+        /*  The shape test comes first for the hidden pass, silently: every pair
+            that is a regular divergence is, by definition, not a hidden one,
+            and listing each of those as a "rejected hidden line" would double
+            the rejects with noise. Only a hidden-shaped pair that then fails a
+            structural check is worth reporting.                             */
+        const shape = hidden
+          ? (dir==='bull' ? (dp >  minPct && dk < -minK) : (dp < -minPct && dk >  minK))
+          : (dir==='bull' ? (dp < -minPct && dk >  minK) : (dp >  minPct && dk < -minK));
+        if(hidden && !shape) continue;
+        if(span < minBars){ rej(p1,p2,dir,'only '+span+' bars apart', hidden); continue; }
+        if(span > maxBars){ rej(p1,p2,dir,span+' bars apart, over the '+maxBars+'-bar limit', hidden); continue; }
+        if(!shape){
           rej(p1,p2,dir, Math.abs(dk)<minK ? '%K moved only '+dk.toFixed(1)
             : Math.abs(dp)<minPct ? 'price moved only '+(dp*100).toFixed(2)+'%'
             : 'price and %K moved the same way, not diverging');
@@ -274,7 +293,7 @@ function divergences(k, d, high, low, cfg){
 
         // the stochastic line must not be pierced anywhere between the two ends
         const lineOK = unbroken(j => k[j], p1.kIdx, p2.kIdx, p1.level, p2.level, kind, pierce);
-        if(!lineOK){ rej(p1,p2,dir,'%K pierces the line between the two ends'); continue; }
+        if(!lineOK){ rej(p1,p2,dir,'%K pierces the line between the two ends', hidden); continue; }
 
         // on price, what matters is not skipping a lower low (or higher high)
         // in between — a curved trend dips under its own chord without making one
@@ -285,7 +304,7 @@ function divergences(k, d, high, low, cfg){
           const slack = line*0.002;
           return kind==='low' ? mid.price >= line-slack : mid.price <= line+slack;
         });
-        if(!priceOK){ rej(p1,p2,dir,'skips a '+(kind==='low'?'lower low':'higher high')+' in between'); continue; }
+        if(!priceOK){ rej(p1,p2,dir,'skips a '+(kind==='low'?'lower low':'higher high')+' in between', hidden); continue; }
 
         legs.push({a:p1, b:p2}); break;
       }
@@ -294,12 +313,13 @@ function divergences(k, d, high, low, cfg){
     let run = null;
     legs.forEach(leg=>{
       if(run && run.points[run.points.length-1].kIdx === leg.a.kIdx) run.points.push(leg.b);
-      else { run = {dir, points:[leg.a, leg.b]}; runs.push(run); }
+      else { run = {dir, hidden:!!hidden, points:[leg.a, leg.b]}; runs.push(run); }
     });
     return runs;
   };
 
-  const out = [...build('low','bull'), ...build('high','bear')];
+  const out = [...build('low','bull'), ...build('high','bear'),
+               ...build('low','bull',true), ...build('high','bear',true)];
   out.forEach(x=>{
     x.legs = x.points.length-1;
     x.from = x.points[0].kIdx;
@@ -307,7 +327,7 @@ function divergences(k, d, high, low, cfg){
     x.pending = x.points[x.points.length-1].provisional;
   });
   const kept = out.filter(x => !out.some(y =>
-    y!==x && y.dir===x.dir && y.from<=x.from && y.to>=x.to && (y.to-y.from) > (x.to-x.from)));
+    y!==x && y.dir===x.dir && y.hidden===x.hidden && y.from<=x.from && y.to>=x.to && (y.to-y.from) > (x.to-x.from)));
   kept.sort((a,b)=>a.to-b.to);
   const drawn = new Set(kept.flatMap(x=>x.points.map(p=>p.kIdx)));
   kept.rejected = rejects.filter(r=>!(drawn.has(r.from)&&drawn.has(r.to)));

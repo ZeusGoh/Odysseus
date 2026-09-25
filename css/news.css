@@ -128,26 +128,10 @@
   .anompill.dim{color:var(--dim)}
   .anomtag{display:inline-flex;align-items:center;gap:5px;margin-left:7px}
   .anomtag em{font-style:normal;font-family:var(--mono);font-size:9px;color:var(--dim)}
-  .coilhead.mrow,.coilrow.mrow{display:grid;
-        grid-template-columns:minmax(0,1fr) 68px 70px 74px 116px repeat(3,66px);
-        gap:10px;align-items:center;padding:10px 16px}
-  .coilhead{color:var(--mute);font-size:10px;letter-spacing:.04em;
-        background:var(--panel-2);border-bottom:1px solid var(--edge)}
-  .coilhead span:nth-child(n+2):nth-child(-n+4){text-align:right}
-  .coilhead span:nth-child(n+6){text-align:center}
-  .coilrow{border-bottom:1px solid var(--edge);font-size:11.5px}
-  .coilrow:last-child{border-bottom:0}
-  .coilrow:hover{background:var(--raise)}
-  .coilrow > div:nth-child(n+2):nth-child(-n+4){text-align:right}
-  .coilrow > div:nth-child(n+6){text-align:center}
-  .coilsigs{display:flex;gap:4px;flex-wrap:wrap}
-  .coilsig{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:3px;
-        background:var(--chip);box-shadow:inset 0 0 0 1px var(--edge);color:var(--mute)}
 
   @media (max-width:900px){
-    .anomhead,.anomloghead,.coilhead{display:none}
+    .anomhead,.anomloghead{display:none}
     .anomrow.mrow{grid-template-columns:minmax(0,1fr) repeat(3,auto)}
     .anomlogrow.mrow{grid-template-columns:minmax(0,1fr) auto auto;gap:5px 10px}
-    .coilrow.mrow{grid-template-columns:minmax(0,1fr) auto auto;gap:5px 10px}
   }
 

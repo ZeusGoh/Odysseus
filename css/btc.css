@@ -1,0 +1,112 @@
+/* btc.css — the Bitcoin desk: one page, one coin, every read. */
+  .bxtools{display:flex;gap:8px;flex-wrap:wrap}
+  .bxhead{display:flex;align-items:flex-end;justify-content:space-between;gap:18px 30px;flex-wrap:wrap;
+        padding:0 2px 16px}
+  .bxreads{display:flex;flex-wrap:wrap;gap:6px}
+  /* one read per tile: the label is what read it, the bold line is what it says; press to jump */
+  .bxread{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:118px;
+        padding:8px 12px;border-radius:var(--radius-md);text-align:left;
+        background:var(--panel);box-shadow:inset 0 0 0 1px var(--edge)}
+  .bxread:hover{background:var(--raise);box-shadow:inset 0 0 0 1px var(--edge-2)}
+  .bxread .bxlab,.bxlab{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--mute)}
+  .bxread b{font-size:12px;font-weight:500;color:var(--ink);white-space:nowrap}
+  .bxread.up b{color:var(--up)} .bxread.down b{color:var(--down)}
+  .bxread.up{box-shadow:inset 0 0 0 1px rgba(8,153,129,.35)}
+  .bxread.down{box-shadow:inset 0 0 0 1px rgba(242,54,69,.35)}
+  .bxpill{font-family:var(--mono);font-size:9.5px;padding:2px 6px;border-radius:2px;background:var(--chip);color:var(--mute)}
+
+  /* ---- stochastic ---- */
+  .bxstance{padding:14px 16px 12px;border-bottom:1px solid var(--edge)}
+  .bxstance h1{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+        font-size:14px;font-weight:500;letter-spacing:-.01em;margin-bottom:11px}
+  .bxstance h1 span:last-child{font-size:12.5px;font-weight:600}
+  /* the Terminal's matrix without the delta column; compound so charts.css's .mrow
+     media override cannot reshape it out from under its header */
+  .bxrow.mrow{grid-template-columns:52px minmax(0,1fr) 38px 86px 40px 48px 100px}
+  .bxmhead.mrow{color:var(--mute);font-size:10px;letter-spacing:.04em;padding:8px 16px;
+        background:var(--panel-2);border-bottom:1px solid var(--edge)}
+  .bxmhead.mrow:hover{background:var(--panel-2)}
+  .bxmhead div:nth-child(3),.bxmhead div:nth-child(4),.bxmhead div:nth-child(5),.bxmhead div:nth-child(6){text-align:right}
+  .bxbest{padding:11px 16px 13px;margin-top:0;font-size:12px;line-height:1.55}
+  .bxgrade{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+        padding:2px 7px;border-radius:2px;background:var(--chip);color:var(--mute);margin-right:6px}
+  .bxgrade.strong,.bxgrade.playable{color:var(--up);background:rgba(8,153,129,.12)}
+  .bxgrade.thin,.bxgrade.untested{color:var(--pend);background:rgba(245,165,36,.12)}
+  .bxgrade.negative,.bxgrade.no-edge{color:var(--down);background:rgba(242,54,69,.12)}
+  .bxsum{color:var(--mute)}
+
+  /* ---- positioning ---- */
+  .bxmarket{padding:14px 16px 4px;border-bottom:0}
+  .bxmarket .ctstance{min-width:0}
+
+  /* ---- day of the week ---- */
+  .bxscope{margin-left:auto}
+  .bxtoday{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 14px;padding:13px 16px;
+        border-bottom:1px solid var(--edge);font-size:12px;color:var(--mute);line-height:1.5}
+  .bxtoday b{font-size:13px;color:var(--ink)}
+  .bxtoday.up b{color:var(--up)} .bxtoday.down b{color:var(--down)}
+  .bxtoday .bxsub{flex-basis:100%;font-size:11px;color:var(--dim)}
+  .bxdayhead.mrow,.bxday.mrow{display:grid;
+        grid-template-columns:minmax(0,1fr) 54px 74px 74px 72px 74px 58px 40px;
+        gap:10px;align-items:center;padding:10px 16px}
+  .bxdayhead{color:var(--mute);font-size:10px;letter-spacing:.04em;
+        background:var(--panel-2);border-bottom:1px solid var(--edge)}
+  .bxdayhead span:nth-child(n+2){text-align:right}
+  .bxday{border-bottom:1px solid var(--edge);font-size:12px}
+  .bxday.thinsample{opacity:.55}
+  .bxday.today{background:rgba(110,123,255,.07)}
+  .bxday.today:hover{background:rgba(110,123,255,.12)}
+  .bxdayname{font-weight:500;display:flex;align-items:center;gap:8px}
+  .bxnow{font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;
+        padding:1px 6px;border-radius:2px;background:rgba(110,123,255,.18);color:var(--focus)}
+  .bxlean{text-align:right;font-size:11px;color:var(--faint)}
+  .bxlean.up{color:var(--up)} .bxlean.down{color:var(--down)}
+  .bxyears{padding:12px 16px 4px;border-top:1px solid var(--edge)}
+  .bxyhead,.bxyrow{display:grid;grid-template-columns:52px repeat(7,minmax(0,1fr));gap:8px;padding:4px 0;
+        font-family:var(--mono);font-size:10.5px}
+  .bxyhead{color:var(--mute);font-family:var(--sans);font-size:10px;letter-spacing:.04em;padding-bottom:6px}
+  .bxyhead span:nth-child(n+2),.bxyrow span:nth-child(n+2){text-align:right}
+  .bxyear{color:var(--dim)}
+  .bxworstrow{display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px 16px 4px;font-size:11px;color:var(--mute)}
+  .bxworstrow::before{content:'Worst single days';color:var(--dim);font-size:10px;letter-spacing:.04em;text-transform:uppercase;flex-basis:100%}
+  .bxworst b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+  .bxworst em{font-style:normal;font-family:var(--mono);margin-left:4px}
+  .bxworst em.down{color:var(--down)}
+  #bx-daynote{padding:0 16px 13px}
+
+  /* ---- analysts ---- */
+  .bxanbar{display:flex;flex-direction:column;gap:10px;padding:13px 16px;border-bottom:1px solid var(--edge)}
+  .bxanbtns{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+  .bxanbtns button:disabled{opacity:.45;cursor:not-allowed}
+  #bx-read-now{padding:6px 13px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;color:var(--ink);
+        background:linear-gradient(180deg,rgba(110,123,255,.28),rgba(110,123,255,.12));
+        box-shadow:inset 0 0 0 1px rgba(110,123,255,.5)}
+  #bx-read-now:not(:disabled):hover{background:rgba(110,123,255,.32)}
+  .bxannote{padding:0 16px;margin-top:10px}
+  .bxannote:empty{display:none}
+  .bxancard{padding:12px 16px}
+  .bxancard .loading{padding:0}
+  .bxh3{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--mute);
+        padding:12px 16px 8px;border-top:1px solid var(--edge)}
+  .bxrechead,.bxrecrow{display:grid;grid-template-columns:64px 170px 170px minmax(0,1fr);gap:10px;
+        padding:6px 16px;font-size:11.5px;align-items:center}
+  .bxrechead{color:var(--mute);font-size:10px;letter-spacing:.04em}
+  .bxrechead span:nth-child(2),.bxrechead span:nth-child(3){text-align:right}
+  .bxrecside{font-weight:500}
+  .bxreclean{color:var(--mute);font-size:11px}
+  .bxcalls{display:flex;flex-direction:column;gap:2px;padding:8px 16px 14px}
+  .bxcall{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;padding:6px 0;border-top:1px solid var(--edge);font-size:11px}
+  .bxcallwhen{font-family:var(--mono);color:var(--dim);min-width:80px}
+  .bxcallside{display:inline-flex;align-items:center;gap:5px;color:var(--mute);font-family:var(--mono);font-size:10.5px}
+  .bxcallside em{font-style:normal;color:var(--faint)}
+  .bxg{font-style:normal;font-family:var(--mono);font-size:9.5px;color:var(--dim)}
+  .bxg.right{color:var(--up)} .bxg.wrong{color:var(--down)}
+
+  @media (max-width:900px){
+    .bxrow.mrow{grid-template-columns:46px minmax(0,1fr) auto;gap:4px 10px}
+    .bxmhead{display:none}
+    .bxdayhead{display:none}
+    .bxday.mrow{grid-template-columns:minmax(0,1fr) auto auto auto;gap:4px 10px}
+    .bxrechead,.bxrecrow{grid-template-columns:56px 1fr 1fr}
+    .bxreclean{grid-column:1 / -1}
+  }

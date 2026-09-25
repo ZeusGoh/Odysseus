@@ -12,7 +12,11 @@ const JS_DIR = path.join(__dirname, '..', 'js');
 // Enough of a browser for the pure-logic files. Anything that really needs the
 // DOM belongs in a browser test, not here — the stub stays deliberately thin so
 // a file that quietly depends on the DOM fails loudly instead of passing on a lie.
-function browserStub(){
+/*  `overrides` is merged over the stub before the context is created, so a
+    caller that needs a real `fetch` (the MCP engine in mcp/engine.js) or a
+    less thin DOM can swap those in without a second copy of the stub
+    existing anywhere.                                                      */
+function browserStub(overrides){
   const storage = (()=>{ const m = {}; return {
     getItem: k => (k in m ? m[k] : null),
     setItem: (k,v) => { m[k] = String(v); },
@@ -34,6 +38,7 @@ function browserStub(){
     },
     addEventListener: () => {},
   };
+  Object.assign(ctx, overrides || {});
   ctx.window = ctx;
   ctx.globalThis = ctx;
   return ctx;
@@ -93,8 +98,16 @@ function topLevelNames(src){
   return names;
 }
 
-function load(files){
-  const ctx = vm.createContext(browserStub());
+/*  Loads app files into an ALREADY-CREATED context. Split out of load() so the
+    MCP engine can build its own context — real fetch, a less thin DOM — and
+    still go through this exact loader. One implementation of the VM trick, not
+    two, which is the same reason the engine does not reimplement the maths.
+
+    A top-level const/let stays in the context's global LEXICAL scope, and later
+    scripts run in the SAME context can both read and assign it. That is what
+    lets the engine do vm.runInContext("MARKET = 'spot'", ctx) from outside, and
+    it is why the expose pass below can see the names at all.               */
+function loadInto(ctx, files){
   const names = new Set();
   for (const f of files){
     const src = fs.readFileSync(path.join(JS_DIR, f), 'utf8');
@@ -106,4 +119,8 @@ function load(files){
   return ctx;
 }
 
-module.exports = {load, JS_DIR};
+function load(files, overrides){
+  return loadInto(vm.createContext(browserStub(overrides)), files);
+}
+
+module.exports = {load, loadInto, browserStub, topLevelNames, JS_DIR};

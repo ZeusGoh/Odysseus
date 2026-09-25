@@ -115,3 +115,72 @@ suite('divergences');
   const out = divergences(k, d, flat, flat, {});
   ok('flat data produces no divergence and does not throw', Array.isArray(out) && out.length === 0);
 }
+
+/*  Hand-built waves: %K is a triangle wave through given turning points and %D
+    is %K one bar late, so the lines cross exactly at every turn. Price highs
+    and lows are separate waves through the same turns, so the two shapes can
+    be set independently — which is the whole question divergence asks.    */
+function wave(points){
+  const n = points[points.length-1][0]+1, out = new Array(n).fill(null);
+  for(let p=1;p<points.length;p++){
+    const [i0,v0] = points[p-1], [i1,v1] = points[p];
+    for(let i=i0;i<=i1;i++) out[i] = v0 + (v1-v0)*((i-i0)/(i1-i0));
+  }
+  return out;
+}
+function lagged(k){ return k.map((v,i)=> i ? k[i-1] : v); }
+const TURNS = [0,10,20,30,40,50];
+const shape = (kLevels, lows, highs) => {
+  const k = wave(TURNS.map((i,j)=>[i,kLevels[j]]));
+  return { k, d: lagged(k), low: wave(TURNS.map((i,j)=>[i,lows[j]])), high: wave(TURNS.map((i,j)=>[i,highs[j]])) };
+};
+
+suite('divergences — the regular kind: price pushes on, the lines do not confirm');
+{
+  //                 idx: 0   10  20  30  40  50      troughs at 10 and 30, peaks at 20 and 40
+  const f = shape([60,  8, 70, 20, 65, 30],       // %K: LOWER trough then HIGHER trough
+                  [108,100,110, 96,110,100],      // price lows: 100 then 96 — a LOWER low
+                  [110,102,112, 98,112,102]);
+  const out = divergences(f.k, f.d, f.high, f.low, {});
+  const bull = out.filter(x=>x.dir==='bull' && !x.hidden);
+  check('a lower price low against a higher %K low is a regular bull divergence', bull.length, 1);
+  check('drawn between the two troughs', [bull[0].points[0].kIdx, bull[0].points[1].kIdx], [10, 30]);
+  ok('and it is not marked hidden', bull[0].hidden === false);
+  check('no hidden divergence is claimed from the same shape', out.filter(x=>x.hidden).length, 0);
+}
+
+suite('divergences — the hidden kind: a pullback deeper on the lines than on price');
+{
+  const f = shape([60, 20, 70,  8, 65, 30],       // %K: 20 then 8 — a LOWER low on the lines
+                  [108,100,110,104,110,100],      // price lows: 100 then 104 — a HIGHER low
+                  [110,102,112,106,112,102]);
+  const out = divergences(f.k, f.d, f.high, f.low, {});
+  const hid = out.filter(x=>x.dir==='bull' && x.hidden);
+  check('a higher price low against a lower %K low is a hidden bull divergence', hid.length, 1);
+  check('between the same two troughs', [hid[0].points[0].kIdx, hid[0].points[1].kIdx], [10, 30]);
+  ok('it argues for the bull side', hid[0].dir === 'bull');
+  check('and is NOT reported as a regular bull divergence', out.filter(x=>x.dir==='bull' && !x.hidden).length, 0);
+  ok('the record it leaves carries the flag every reader needs', out.every(x => typeof x.hidden === 'boolean'));
+}
+
+suite('divergences — hidden bearish is the mirror');
+{
+  const f = shape([40, 80, 30, 92, 35, 70],       // %K peaks: 80 then 92 — a HIGHER high on the lines
+                  [ 98,110, 96,106, 97,104],
+                  [100,112, 98,108, 99,106]);     // price highs: 112 then 108 — a LOWER high
+  const out = divergences(f.k, f.d, f.high, f.low, {});
+  const hid = out.filter(x=>x.dir==='bear' && x.hidden);
+  check('a lower price high against a higher %K high is a hidden bear divergence', hid.length, 1);
+  check('between the two peaks', [hid[0].points[0].kIdx, hid[0].points[1].kIdx], [10, 30]);
+  check('and no regular bear divergence is claimed', out.filter(x=>x.dir==='bear' && !x.hidden).length, 0);
+}
+
+suite('divergences — price and lines moving the same way is neither kind');
+{
+  const f = shape([60, 20, 70,  8, 65, 30],       // lower %K low
+                  [108,100,110, 96,110,100],      // AND a lower price low — just a downtrend
+                  [110,102,112, 98,112,102]);
+  const out = divergences(f.k, f.d, f.high, f.low, {});
+  check('nothing is drawn', out.filter(x=>x.dir==='bull').length, 0);
+  ok('and the hidden pass adds no rejects for a shape that was never hidden', !out.rejected.some(r=>r.hidden));
+}

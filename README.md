@@ -10,6 +10,12 @@ CoinGecko (coin names and logos) and a handful of public RSS feeds. Logan and
 the catalyst call use the Anthropic API and need a key; everything else is free
 and needs none.
 
+Live copy, for the phone or anywhere away from the PC:
+https://zeusgoh.github.io/Odysseus/ — published by GitHub Pages from this repo
+on every push to master (see .github/workflows/pages.yml). The Analyst chat and
+the Bybit line need the relay, which runs on the PC only, so they show "relay
+off" there; everything that reads the market works.
+
 ## Running it
 
 Open `index.html` in a browser and it works — the terminal, scanner, history,

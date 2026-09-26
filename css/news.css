@@ -129,9 +129,5 @@
   .anomtag{display:inline-flex;align-items:center;gap:5px;margin-left:7px}
   .anomtag em{font-style:normal;font-family:var(--mono);font-size:9px;color:var(--dim)}
 
-  @media (max-width:900px){
-    .anomhead,.anomloghead{display:none}
-    .anomrow.mrow{grid-template-columns:minmax(0,1fr) repeat(3,auto)}
-    .anomlogrow.mrow{grid-template-columns:minmax(0,1fr) auto auto;gap:5px 10px}
-  }
+  /* on a phone both tables keep their columns and scroll sideways — see phone.css */
 

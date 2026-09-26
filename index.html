@@ -21,6 +21,7 @@
 <link rel="stylesheet" href="css/analyst.css">
 <link rel="stylesheet" href="css/btc.css">
 <link rel="stylesheet" href="css/idle.css">
+<link rel="stylesheet" href="css/phone.css">
 </head>
 <body>
 
@@ -260,8 +261,8 @@
       <header><h2>Day of the week</h2><p>which day BTC bleeds on and which day it pays, close to close, on every daily bar Bybit has</p>
         <div class="hscope bxscope"><button id="bx-wk-all" aria-pressed="true">All history</button><button id="bx-wk-recent" aria-pressed="false">Last 12 months</button></div></header>
       <div id="bx-today"></div>
-      <div class="mrow bxdayhead"><span>Day</span><span>Days</span><span>Avg</span><span>Median</span><span>Up</span><span>Total</span><span>≤ −5%</span><span>Lean</span></div>
-      <div id="bx-days"><div class="loading">Paging back through every BTC daily bar Bybit has…</div></div>
+      <div class="tscroll"><div class="mrow bxdayhead"><span>Day</span><span>Days</span><span>Avg</span><span>Median</span><span>Up</span><span>Total</span><span>≤ −5%</span><span>Lean</span></div>
+      <div id="bx-days"><div class="loading">Paging back through every BTC daily bar Bybit has…</div></div></div>
       <div class="bxyears" id="bx-years"></div>
       <div class="bxworstrow" id="bx-worst"></div>
       <p class="wnote" id="bx-daynote"></p>
@@ -474,14 +475,14 @@
 
     <section class="mod">
       <header><h2>By frame</h2><p>has a cross on this timeframe been worth taking?</p></header>
-      <div class="mrow hhead" id="hhead-frames"></div>
-      <div id="hframes"><div class="loading">Load a coin, then rebuild.</div></div>
+      <div class="tscroll"><div class="mrow hhead" id="hhead-frames"></div>
+      <div id="hframes"><div class="loading">Load a coin, then rebuild.</div></div></div>
     </section>
 
     <section class="mod">
       <header><h2>By setup</h2><p>which kind of cross has actually paid</p></header>
-      <div class="mrow hhead hhead2" id="hhead-setup"></div>
-      <div id="hbuckets"><div class="loading">—</div></div>
+      <div class="tscroll"><div class="mrow hhead hhead2" id="hhead-setup"></div>
+      <div id="hbuckets"><div class="loading">—</div></div></div>
     </section>
     <p class="wnote" id="hnote"></p>
   </section>
@@ -716,11 +717,11 @@
         <p class="wnote bynote" id="by-note"></p>
       </div>
       <header class="bysub"><h2>Open on Bybit</h2><p id="by-pos-sub">what you are in on Bybit right now</p></header>
-      <div class="mrow byhead">
+      <div class="tscroll"><div class="mrow byhead">
         <span>Coin</span><span>Side</span><span>Size</span><span>Entry</span><span>Mark</span>
         <span>Unrealised</span><span>Stop / TP</span><span>Liq</span><span>Stoch</span><span>Analysts</span><span></span>
       </div>
-      <div id="by-positions"><div class="loading">Connect Bybit to see what you are in.</div></div>
+      <div id="by-positions"><div class="loading">Connect Bybit to see what you are in.</div></div></div>
     </section>
 
     <section class="mod">
@@ -771,19 +772,19 @@
 
     <section class="mod">
       <header><h2>Detector track record</h2><p>does a flag mean anything? — % that held, by what the detector called the move</p></header>
-      <div class="mrow anomhead">
+      <div class="tscroll"><div class="mrow anomhead">
         <span>Classification</span><span>+1h held</span><span>+4h held</span><span>+24h held</span>
       </div>
-      <div id="anomrows"><div class="loading">Nothing logged yet.</div></div>
+      <div id="anomrows"><div class="loading">Nothing logged yet.</div></div></div>
     </section>
 
     <section class="mod">
       <header><h2>Flag log</h2><p>every abnormal move written down at the moment it fired</p></header>
-      <div class="mrow anomloghead">
+      <div class="tscroll"><div class="mrow anomloghead">
         <span>Coin</span><span>Move</span><span>Excess</span><span>Read</span>
         <span>+1h</span><span>+4h</span><span>+24h</span>
       </div>
-      <div id="anomlog"><div class="loading">No flags logged yet.</div></div>
+      <div id="anomlog"><div class="loading">No flags logged yet.</div></div></div>
     </section>
     <p class="wnote" id="anomnote"></p>
   </section>
@@ -848,17 +849,6 @@
     </div>
   </section>
 
-  <details class="help">
-    <summary>How these signals are read</summary>
-    <p><b>Confirmed versus potential.</b> Confirmed means the cross printed on a bar that has already closed, so it
-    cannot be taken back. Potential means it sits on the bar still forming: %K is through %D right now, but if it slips
-    back before that bar closes the signal disappears. Divergence splits the same way, since a run whose latest leg
-    rests on an unclosed cross can also unwind.</p>
-    <p><b>Divergence.</b> Read on geometry rather than on where it sits on the scale. Bullish joins price lows while
-    the stochastic makes higher lows, bearish joins price highs while the stochastic makes lower highs, at 50 just as
-    readily as at 10 or 90. Heights come off %K alone. A line is void if %K cuts through it between the two ends, and
-    where several swings in a row keep diverging they join into one run.</p>
-  </details>
 
   <section id="newsview" hidden>
     <div class="wtop">
@@ -890,9 +880,22 @@
       </div>
       <div id="nvrows"><div class="loading">Hit Scan movers to sweep the board.</div></div>
     </section>
+
     <p class="wnote" id="nvnote"></p>
 
   </section>
+
+  <details class="help">
+    <summary>How these signals are read</summary>
+    <p><b>Confirmed versus potential.</b> Confirmed means the cross printed on a bar that has already closed, so it
+    cannot be taken back. Potential means it sits on the bar still forming: %K is through %D right now, but if it slips
+    back before that bar closes the signal disappears. Divergence splits the same way, since a run whose latest leg
+    rests on an unclosed cross can also unwind.</p>
+    <p><b>Divergence.</b> Read on geometry rather than on where it sits on the scale. Bullish joins price lows while
+    the stochastic makes higher lows, bearish joins price highs while the stochastic makes lower highs, at 50 just as
+    readily as at 10 or 90. Heights come off %K alone. A line is void if %K cuts through it between the two ends, and
+    where several swings in a row keep diverging they join into one run.</p>
+  </details>
 
 </div>
 

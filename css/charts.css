@@ -47,7 +47,10 @@
     .market{grid-template-columns:1fr;gap:20px}
     .duo{grid-template-columns:1fr}
     .mhead{display:none}
-    .mrow{grid-template-columns:46px minmax(0,1fr) auto;gap:4px 10px;padding:11px 14px}
+    /* the Terminal's frame matrix only — .mrow is also the row class of a dozen other
+       tables (day of the week, backtest, anomaly log, journal), which lay themselves out
+       in phone.css; an unscoped rule here reshaped every one of them */
+    .matrix .mrow{grid-template-columns:46px minmax(0,1fr) auto;gap:4px 10px;padding:11px 14px}
     .trend{grid-column:2;text-align:left}
     .age{grid-column:3;grid-row:1;text-align:right}
     .kd,.delta,.zone,.dvg{grid-row:auto}

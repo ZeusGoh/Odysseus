@@ -105,8 +105,7 @@
   @media (max-width:900px){
     .bxrow.mrow{grid-template-columns:46px minmax(0,1fr) auto;gap:4px 10px}
     .bxmhead{display:none}
-    .bxdayhead{display:none}
-    .bxday.mrow{grid-template-columns:minmax(0,1fr) auto auto auto;gap:4px 10px}
+    /* the day-of-week table keeps its columns and scrolls sideways — see phone.css */
     .bxrechead,.bxrecrow{grid-template-columns:56px 1fr 1fr}
     .bxreclean{grid-column:1 / -1}
   }

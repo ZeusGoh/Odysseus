@@ -1,0 +1,161 @@
+/* phone.css — everything that is different on a phone, in one place, loaded last.
+
+   The rest of the stylesheets were written for a desk. Each of them carries a
+   narrow-window rule or two, and over time those started fighting: a rule for
+   the Terminal's frame matrix (`.mrow`) reshaped every other table that shared
+   the class, and a `.anomhead{display:none}` lost to `.anomhead.mrow{display:grid}`
+   on specificity, so the header stayed and the rows underneath it scrambled.
+   This file is the one that wins, because it comes last and says so plainly.
+
+   Two ideas do most of the work:
+   - a wide numeric table keeps its columns and scrolls sideways in a
+     `.tscroll` box, instead of folding eight columns into a 360px stack;
+   - a row that is a card on a phone (scanner, crowd sweep, anomaly) turns
+     from a grid into a wrapping flex row, so its cells fall into three short
+     lines in the order they were written.
+   part of Odysseus */
+
+  /* a table that scrolls sideways rather than collapsing */
+  .tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+
+  @media (max-width:640px){
+
+    /* ---- the rail ---- */
+    .rail{padding:8px 12px;gap:8px 10px}
+    .brand{padding-right:6px;font-size:13px}
+    .symwrap{flex:1 1 100%;order:5;gap:8px}
+    .symtabs{flex:1 1 auto;max-width:none;
+             /* the strip scrolls; fade its far edge so it reads as one */
+             -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);
+                     mask-image:linear-gradient(90deg,#000 88%,transparent)}
+    .symtab{padding:5px 9px}
+    #symsearch{width:118px;flex:none}
+    .sugglist{right:auto;left:0;width:min(280px,calc(100vw - 24px))}
+    .rail .grow{display:none}
+    .rail .status,.rail .seg2,.rail .ghost{order:6}
+    #src{display:none}                          /* the source line — on a phone it is only noise */
+    .navpanel{width:min(300px,calc(100vw - 24px))}
+
+    /* ---- panel headers: title on the first line, subtitle under it, controls under that ---- */
+    .mod > header{flex-wrap:wrap;align-items:center;gap:6px 10px;padding:10px 14px}
+    .mod > header h2{flex:1 1 auto;min-width:0}
+    .mod > header .fold{order:1;margin-left:auto}
+    .mod > header > :not(h2):not(.fold){order:2;flex:0 0 100%;margin-left:0;min-width:0}
+    .mod > header > p{font-size:10.5px;line-height:1.45}
+    .mod > header .lsrwin,.mod > header .hscope,.mod > header .legend{flex-basis:100%}
+    .chartmod > header .legend{gap:6px 12px}
+    /* the reading hints in a chart's legend take three lines on a phone; the chart explains itself */
+    .chartmod > header .legend span:nth-child(n+4){display:none}
+    .chartmod h2 em{display:block;margin-left:0}
+
+    /* ---- market bar ---- */
+    .market{padding:18px 0 14px;gap:16px}
+    .tick{gap:14px}
+    .tick .px{font-size:32px}
+    .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 12px;width:100%}
+    .stats div{gap:2px}
+    .stats dt{white-space:nowrap;font-size:10px}
+    .stats dd{font-size:12px}
+    .stance h1{font-size:13px;flex-wrap:wrap;gap:6px 9px}
+    .strip{height:32px}
+
+    /* ---- frame matrix (Terminal) and the BTC desk's copy ---- */
+    .matrix .mrow,.bxrow.mrow{padding:10px 12px}
+    .matrix .sub,.bxrow .sub{white-space:normal;overflow:visible;text-overflow:clip}
+    .sigline{flex-wrap:wrap;row-gap:3px}
+    .edge{white-space:normal}
+
+    /* ---- signal lists ---- */
+    .sig-list li{grid-template-columns:30px 1fr;gap:9px;padding:10px 12px}
+
+    /* ---- long/short ratio ---- */
+    .lsrtot{padding:10px 12px;gap:6px 10px}
+    .lsrtotname b{font-size:14px}
+    .lsrtot .lsrusd b{font-size:13px}
+    .lsrtot .lsrusd .lab{font-size:9px}
+    .lsrrow.mrow{padding:9px 12px;gap:6px 10px}
+    .lsrread,.lsrsparkwrap,#lsr-note{padding-left:12px;padding-right:12px}
+
+    /* ---- open interest & CVD ---- */
+    .ocpanes{padding:8px 12px 4px}
+    .oclab b{font-size:12px}
+    .ocread{padding-left:12px;padding-right:12px}
+
+    /* ---- the crowd panel and its chart ---- */
+    .ctbody{padding:12px;gap:14px}
+    .ctstats{gap:12px 16px}
+    .ctstrip{padding:10px 12px 4px;gap:0}
+    .ctstrip i{min-width:0}          /* 168 hours must fit in 360px: no gap, no floor */
+
+    /* ---- wide tables: keep the columns, scroll sideways ---- */
+    .tscroll > .mrow,.tscroll > div > .mrow{min-width:var(--tw,600px)}
+    .hhead,.hrow{--tw:620px}
+    .hhead2,.brow{--tw:720px}
+    .bxdayhead,.bxday{--tw:640px}
+    .byhead,.byrow{--tw:960px}
+    .anomhead,.anomrow{--tw:520px}
+    .anomloghead,.anomlogrow{--tw:680px}
+    /* the phone rules some of those tables carried (stack into two lines) are gone:
+       columns stay as on the desk, and the header row stays visible */
+    .byhead{display:grid}
+    .byrow.mrow{grid-template-columns:minmax(0,1fr) 58px 92px 88px 88px 112px 96px 82px 78px 110px 96px;gap:10px}
+    .byrow > div:nth-child(n+3):nth-child(-n+8){text-align:right!important}
+    .tscroll .loading{min-width:0}
+
+    /* ---- rows that are cards: scanner, crowd sweep, anomaly ---- */
+    .scrow,.crrow,.nvrow{display:flex;flex-wrap:wrap;align-items:center;gap:5px 8px;padding:10px 12px}
+    .scrank,.nvrank{flex:0 0 18px;font-size:10px}
+    .scsym,.nvsym{flex:1 1 auto;min-width:0}
+    .scsym em,.nvsym em{max-width:120px}
+    .sclast,.scchg,.nvlast,.nvmove{flex:none;text-align:right}
+    .scsetup{flex:0 0 100%;padding-left:26px;line-height:1.4}
+    .scsetup em{display:inline;margin-top:0;margin-left:6px}
+    .scframes{margin-left:26px;gap:3px}
+    .scbtc,.scema,.scdiv{flex:none;text-align:left}
+    .scscore{margin-left:auto;text-align:right}
+    .sctrack{flex:none}
+    .crrow .scsetup{flex-basis:100%}
+    .crrow .crcell{flex:none;text-align:left;font-size:10.5px}
+    .crrow .crcell:first-of-type{margin-left:26px}
+    .crrow .crflow{flex:none}
+    .nvexc{flex:none;margin-left:26px}
+    .nvkind{flex:none}
+    .nvwhen,.nvflow,.nvfund{flex:none}
+    .nvwhen{margin-left:26px}
+    .nvwhen b,.nvflow b{display:inline;margin-right:4px}
+    .nvask{margin-left:auto}
+    .nvwhy{margin:0 12px 12px}
+
+    /* ---- the BTC desk ---- */
+    .bxreads{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .bxread{min-width:0}
+    .bxread b{white-space:normal}
+    .bxhead{padding-bottom:12px;gap:12px}
+    .bxrechead,.bxrecrow{padding:6px 12px}
+
+    /* ---- the analyst ---- */
+    .anactions{flex-wrap:wrap}
+    .anrelayrow .anrelay{flex:1 1 100%}
+    .anrelay input{flex:1;width:auto;min-width:0}
+    .vset input{width:100%}
+    .vset label{flex:1 1 100%}
+
+    /* ---- view titles and their button rows ---- */
+    .wtop{padding:18px 0 12px;gap:12px}
+    .wtitle{font-size:18px}
+    .vtools{flex-wrap:wrap}
+    .filters{padding:12px;gap:12px 18px}
+    .scctl{padding:12px;gap:10px 14px}
+    .fbtns,.chips{flex-wrap:wrap}
+
+    /* ---- sessions ---- */
+    .sessstage{min-width:0;flex-basis:100%}
+
+    /* ---- charts ---- */
+    .ohlc{font-size:9.5px;gap:6px;padding:4px 7px;left:6px;top:6px}
+    .whylist{padding:9px 12px}
+
+    /* ---- help blocks ---- */
+    details.help{margin-top:16px}
+    .shell{padding:0 12px 60px}
+  }

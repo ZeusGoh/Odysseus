@@ -54,14 +54,17 @@ function priceFormatFor(v){
 function buildPane(tf, el, H){
   const L = LWC();
   el.style.height = H+'px';
+  // on a phone the two axes would take a third of the width; the stochastic's own
+  // scale goes, its values stay readable in the crosshair legend above the pane
+  const phone = window.innerWidth < 640;
   const chart = L.createChart(el, {
     autoSize:true,
     layout:{ background:{type:'solid', color:'transparent'}, textColor:CH.text,
-             fontFamily:CH.font, fontSize:10.5, attributionLogo:false },
+             fontFamily:CH.font, fontSize:phone ? 9.5 : 10.5, attributionLogo:false },
     grid:{ vertLines:{color:CH.grid}, horzLines:{color:CH.grid} },
     rightPriceScale:{ visible:true, borderColor:CH.edge,
                       scaleMargins:{top:PRICE_TOP, bottom:PRICE_BOTTOM} },
-    leftPriceScale:{  visible:true, borderColor:CH.edge,
+    leftPriceScale:{  visible:!phone, borderColor:CH.edge,
                       scaleMargins:{top:STOCH_TOP, bottom:STOCH_BOTTOM} },
     timeScale:{ borderColor:CH.edge, timeVisible:true, secondsVisible:false, rightOffset:4 },
     crosshair:{ mode:1,

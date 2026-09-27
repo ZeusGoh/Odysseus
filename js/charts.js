@@ -47,7 +47,9 @@ const STOCH_TOP = 0.62, STOCH_BOTTOM = 0.04;   // stochastic the lower 34%
 const secs = t => Math.floor(t/1000);
 
 function priceFormatFor(v){
-  const dp = v>=100 ? 2 : v>=1 ? 3 : v>=0.01 ? 5 : 7;
+  // decimals a price axis can afford: none above 1,000 (84,240 says it), and a
+  // narrower axis is the whole chart's width on a phone
+  const dp = v>=1000 ? 0 : v>=100 ? 1 : v>=1 ? 3 : v>=0.01 ? 5 : 7;
   return {type:'price', precision:dp, minMove:Math.pow(10,-dp)};
 }
 

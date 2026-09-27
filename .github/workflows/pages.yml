@@ -26,6 +26,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      # A phone browser holds on to css and js it has seen; stamping every link with
+      # the commit makes each deploy a new file to it, so a fix shows up on first load.
+      - name: Stamp stylesheet and script links with the commit
+        run: sed -i -E "s#(href|src)=\"(css|js)/([^\"?]+)\"#\1=\"\2/\3?v=${GITHUB_SHA::8}\"#g" index.html
       - uses: actions/configure-pages@v5
         with:
           enablement: true

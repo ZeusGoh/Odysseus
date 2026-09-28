@@ -193,16 +193,24 @@
     <p class="wnote" id="cx-note"></p>
   </section>
 
-  <section class="mod">
+  <section class="mod chartmod" id="tvchart">
+    <header><h2>Chart <em id="tv-sym"></em></h2>
+      <p>TradingView itself — draw, zoom, change the Stochastic's settings or add anything from its indicator list. Drawings and settings last until the page is left.</p>
+      <div class="lsrwin" id="tv-win"></div></header>
+    <div class="tvbox" id="tv-box"></div>
+  </section>
+
+  <section class="mod" id="frames" data-fold-default="1">
+    <header><h2>Frame charts</h2><p>the app's own reading of each frame — the stochastic crosses, divergence lines and what the backtest says about them</p></header>
     <div class="ctrl">
-      <span class="lab">Charts</span>
+      <span class="lab">Frames</span>
       <span id="tfpick" style="display:flex;gap:5px"></span>
       <button class="tfbtn" id="pickall">All frames</button>
       <span class="grow" style="flex:1"></span>
       <label class="chk"><input type="checkbox" id="why"> Rejected lines</label>
     </div>
+    <div id="charts"></div>
   </section>
-  <div id="charts"></div>
 
   </div><!-- /terminalview -->
 
@@ -928,6 +936,7 @@
 <script src="js/ui-terminal.js"></script>
 <script src="js/ui-lsr.js"></script>
 <script src="js/ui-oicvd.js"></script>
+<script src="js/ui-tvchart.js"></script>
 <script src="js/ui-crowd.js"></script>
 <script src="js/ui-symbols.js"></script>
 <script src="js/ui-watchlist.js"></script>

@@ -45,6 +45,17 @@
   .chartmod.expanded .panewrap{flex:1;min-height:0}
   body.chart-expanded{overflow:hidden}
 
+  /* ---- the TradingView chart ---- */
+  .tvbox{height:640px;background:var(--panel)}
+  .tvbox:empty{display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:11px}
+  .tvbox:empty:before{content:'loading TradingView…'}
+  #tvchart > header{gap:10px 14px}
+  #tvchart > header p{flex:1 1 320px}
+  /* the app's frame charts nest inside their own panel */
+  #frames > .ctrl{border-bottom:1px solid var(--edge)}
+  #frames #charts{padding:0 10px 10px}
+  #frames .chartmod{margin-top:10px}
+
   /* ---- misc ---- */
   .err{margin-top:12px;padding:11px 14px;border:1px solid rgba(242,54,69,.35);
        border-radius:7px;background:rgba(242,54,69,.07);color:var(--down);font-size:12px}

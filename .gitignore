@@ -32,3 +32,4 @@ verdicts/.watch-lock.json
 verdicts/*.log
 verdicts/.desk-brief.md
 .claude/settings.local.json
+verdicts/*.tmp

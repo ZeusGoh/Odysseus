@@ -246,6 +246,9 @@ load();
 lsrShow();
 oicvdShow();
 crowdTermShow();
+tvChartShow();
+// the TradingView embed is an iframe of its own — drop it while its panel is folded
+$('tvchart').addEventListener('fold', e => { if(e.detail.folded) tvChartDispose(); else tvChartShow(); });
 // the positioning chart is heavy (deep history, a chart library) — it loads when its panel is opened
 $('crowdchart').addEventListener('fold', e => { if(e.detail.folded) cxDispose(); else if(ctState.data) crowdTermChartShow(); });
 refreshTicker();

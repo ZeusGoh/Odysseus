@@ -31,6 +31,13 @@
   .whylist{padding:10px 15px;border-top:1px solid var(--edge);color:var(--mute);font-size:11px;line-height:1.7}
   .whylist b{color:var(--ink);font-weight:500}
 
+  /* ---- the TradingView embed ---- */
+  .tvbox{height:560px;background:var(--panel)}
+  .tvbox:empty{display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:11px}
+  .tvbox:empty:before{content:'loading TradingView…'}
+  #tvchart > header{gap:10px 14px}
+  #tvchart > header p{flex:1 1 320px}
+
   /* ---- misc ---- */
   .err{margin-top:12px;padding:11px 14px;border:1px solid rgba(242,54,69,.35);
        border-radius:7px;background:rgba(242,54,69,.07);color:var(--down);font-size:12px}

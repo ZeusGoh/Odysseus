@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js" onerror="window.__lwcFailed=true"></script>
+<script src="vendor/lightweight-charts.standalone.production.js" onerror="window.__lwcFailed=true"></script>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/terminal.css">
@@ -191,13 +191,6 @@
     <div class="cxtools" id="cx-tools"></div>
     <div class="panewrap"><div class="ohlc cxlegend" id="cx-legend"></div><div class="pane" id="cx-pane"></div></div>
     <p class="wnote" id="cx-note"></p>
-  </section>
-
-  <section class="mod chartmod" id="tvchart">
-    <header><h2>TradingView <em id="tv-sym"></em></h2>
-      <p>the real chart, live from TradingView — zoom, draw, add studies; what you set inside it lasts until you leave the page. The app's own frames, with the crosses and divergence lines, are below.</p>
-      <div class="lsrwin" id="tv-win"></div></header>
-    <div class="tvbox" id="tv-box"></div>
   </section>
 
   <section class="mod">
@@ -935,7 +928,6 @@
 <script src="js/ui-terminal.js"></script>
 <script src="js/ui-lsr.js"></script>
 <script src="js/ui-oicvd.js"></script>
-<script src="js/ui-tvchart.js"></script>
 <script src="js/ui-crowd.js"></script>
 <script src="js/ui-symbols.js"></script>
 <script src="js/ui-watchlist.js"></script>

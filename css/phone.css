@@ -152,7 +152,8 @@
     .sessstage{min-width:0;flex-basis:100%}
 
     /* ---- charts ---- */
-    .tvbox{height:480px}
+    .cbar{padding:6px 10px;gap:4px 8px}
+    .cbtn{padding:5px 8px;font-size:10.5px}
     /* the crosshair legend sat over the top of the candles; on a phone it is a
        strip of its own above the pane, and the symbol it repeats is in the header */
     .panewrap .ohlc{position:static;margin:0;padding:6px 12px 4px;font-size:9.5px;gap:3px 9px;

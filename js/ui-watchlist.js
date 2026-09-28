@@ -73,7 +73,7 @@ function setView(next){
   // entering it wires those controls the same way and asks for a fresh copy
   else if(next==='anhist'){ buildAnalystControls(); anRelay.histAt = 0; analystRelayTick(); renderAnalystHistory(); }
   else if(next==='scan'){ /* results persist between visits */ }
-  else { buildCharts(); if(next==='terminal'){ if(typeof lsrShow === 'function') lsrShow(); if(typeof oicvdShow === 'function') oicvdShow(); if(typeof crowdTermShow === 'function') crowdTermShow(); if(typeof tvChartShow === 'function') tvChartShow(); } }   // charts need a visible container to size to
+  else { buildCharts(); if(next==='terminal'){ if(typeof lsrShow === 'function') lsrShow(); if(typeof oicvdShow === 'function') oicvdShow(); if(typeof crowdTermShow === 'function') crowdTermShow(); } }   // charts need a visible container to size to
   if(jumpTo && $(jumpTo)) requestAnimationFrame(()=> $(jumpTo).scrollIntoView({behavior:'smooth', block:'start'}));
 }
 

@@ -206,6 +206,8 @@ const cxState = {frame:'4h', type:'candles', log:false, tall:false, show:{vol:tr
 
 async function cxLib(){
   if(cxState.lib) return cxState.lib;
+  // the app ships the same library (vendor/), so the import is only a fallback
+  if(window.LightweightCharts && typeof window.LightweightCharts.createSeriesMarkers === 'function') return cxState.lib = window.LightweightCharts;
   cxState.lib = await import(CX_LIB);
   return cxState.lib;
 }

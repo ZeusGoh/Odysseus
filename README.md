@@ -58,11 +58,10 @@ then open <http://localhost:8000/>. Same app, one working origin.
 | `oicvd.js` | open interest and cumulative volume delta, perpetual and spot, from Binance's own bars — and the read of the three together: what positions did, which market led, whether the hitting got paid |
 | `alerts.js` | what is worth announcing, Telegram/browser delivery, alerts UI |
 | `news.js` | movers, beta decomposition, headlines, the catalyst call |
-| `charts.js` | Lightweight Charts, with a canvas fallback when it fails to load |
+| `charts.js` | the frame charts: Lightweight Charts v5 (vendored under `vendor/`) in three panes — price with the EMA, volume, the stochastic on its own 0–100 scale — with the crosses, divergence lines, a candles/bars/line and log-scale toolbar, horizontal and trend lines remembered per coin and frame, and a full-screen view; a canvas fallback when the library fails to load |
 | `ui-terminal.js` | frame matrix, BTC strip, stance, the live backtest badge, `render()` |
 | `ui-lsr.js` | the Terminal's long/short board: fetches the three bucket feeds, keeps a public trade stream open to Bybit and OKX, the 1h / 4h / 24h window, the sum, the hourly line, one bar per exchange |
 | `ui-oicvd.js` | the Terminal's open interest & CVD panel: price, OI, perp CVD and spot CVD stacked on one axis over 24h / 3d / 7d / 30d, with a crosshair |
-| `ui-tvchart.js` | the real TradingView chart embedded on the Terminal (their data, their toolbar, Stochastic preloaded), following the symbol bar; a sealed box, so the app's own frame charts stay beneath it |
 | `ui-fold.js` | every panel folds behind its header with the chevron, and stays folded next time — the way to trim a page down to what you actually read |
 | `ui-symbols.js` | symbol search and pickers |
 | `ui-watchlist.js` | watchlist view |

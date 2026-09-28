@@ -108,7 +108,6 @@ async function switchSymbol(code){
     if(typeof crowdTermShow === 'function') crowdTermShow();
     if(typeof lsrShow === 'function') lsrShow();
     if(typeof oicvdShow === 'function') oicvdShow();
-    if(typeof tvChartShow === 'function') tvChartShow();
   }
   await load();
 }
@@ -131,7 +130,6 @@ async function switchMarket(mkt){
   disposePanes();
   $('rows').innerHTML = '<div class="loading">Loading '+(mkt==='linear'?'perpetual':'spot')+' candles</div>';
   $('charts').innerHTML = '';
-  if(typeof tvChartShow === 'function' && view === 'terminal') tvChartShow();
   await load();
   refreshTicker();
   loadUniverse();
